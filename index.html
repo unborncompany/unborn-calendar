@@ -5,36 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Game of Life — Daily Planner</title>
 
-<!-- PWA Meta Tags -->
+<!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
+
+<!-- Theme & Colors -->
 <meta name="theme-color" content="#3d8b6e">
+<meta name="msapplication-TileColor" content="#3d8b6e">
+<meta name="msapplication-TileImage" content="icons/icon-144.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="GoL Planner">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="description" content="A daily planner with task tracking, calendar, scoreboard, and store.">
 <meta name="mobile-web-app-capable" content="yes">
-<!-- Safari pinned tab icon (use SVG for best results) -->
+<meta name="description" content="A daily planner with task tracking, calendar, scoreboard, store, and virtual pet. Plan your life, earn points, redeem rewards.">
+<meta name="application-name" content="GoL Planner">
+<meta name="apple-application-name" content="GoL Planner">
+<meta name="apple-touch-fullscreen" content="yes">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Favicons & Icons -->
+<link rel="icon" type="image/png" sizes="72x72" href="icons/icon-72.png">
+<link rel="icon" type="image/png" sizes="96x96" href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="128x128" href="icons/icon-128.png">
+<link rel="icon" type="image/png" sizes="144x144" href="icons/icon-144.png">
+<link rel="icon" type="image/png" sizes="152x152" href="icons/icon-152.png">
+<link rel="icon" type="image/png" sizes="167x167" href="icons/icon-167.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="mask-icon" href="icons/icon-192.png" color="#3d8b6e">
 
+<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- App CSS -->
 <link rel="stylesheet" href="style.css">
-<!--
-  ======================================================
-  FIREBASE SETUP INSTRUCTIONS
-  ======================================================
-  1. Go to https://console.firebase.google.com/
-  2. Create a new project (or use an existing one)
-  3. Enable Authentication > Google sign-in provider
-  4. Enable Cloud Firestore (start in test mode)
-  5. Go to Project Settings > General > Your apps > Web app
-  6. Copy the firebaseConfig object and paste it below
-  7. Copy the script tags below and paste them after this comment
-  ======================================================
--->
-<!-- Firebase SDK v10+ (modular) -->
+</head>
+<body>
+
+<!-- Firebase SDK v12+ (modular) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -61,8 +75,6 @@
 
   window.dispatchEvent(new Event("firebase-ready"));
 </script>
-</head>
-<body>
 
 <div class="app">
 

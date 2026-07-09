@@ -3412,6 +3412,24 @@ setInterval(refreshAll, 60000);
 setInterval(checkAlarms, 15000);
 setInterval(saveFiredAlarms, 30000);
 
+// Handle PWA shortcuts (from manifest.json)
+(function handleShortcuts() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get("action");
+  if (action === "new-entry") {
+    setTimeout(() => document.getElementById("quickAddBtn")?.click(), 300);
+  } else if (action === "store" || action === "life") {
+    setTimeout(() => {
+      const btn = document.querySelector(`[data-tab="${action}"]`);
+      if (btn) btn.click();
+    }, 300);
+  }
+  // Clean URL
+  if (action) {
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+})();
+
 // Load default inventory if none exists
 if (inventory.length === 0) {
   try {
@@ -3432,9 +3450,8 @@ if (inventory.length === 0) {
 /* ============ PWA — Service Worker Registration ============ */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      console.log("[PWA] Service worker registered:", reg.scope);
-      // Check for updates periodically
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+      // Check for updates periodically (every hour)
       setInterval(() => reg.update(), 60 * 60 * 1000);
       // Listen for new service worker activation
       reg.addEventListener("updatefound", () => {
@@ -3447,9 +3464,7 @@ if ("serviceWorker" in navigator) {
           });
         }
       });
-    }).catch((err) => {
-      console.warn("[PWA] SW registration failed:", err);
-    });
+    }).catch(() => {});
   });
 }
 
@@ -3462,12 +3477,14 @@ const installDismiss = document.getElementById("installDismiss");
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
-  // Show install banner after 3 seconds
-  setTimeout(() => {
-    if (deferredInstallPrompt) {
-      installBanner.style.display = "block";
-    }
-  }, 3000);
+  // Show install banner after 3 seconds (only if not already dismissed)
+  if (!sessionStorage.getItem("gol-install-dismissed")) {
+    setTimeout(() => {
+      if (deferredInstallPrompt && installBanner) {
+        installBanner.style.display = "block";
+      }
+    }, 3000);
+  }
 });
 
 if (installBtn) {
@@ -3475,22 +3492,20 @@ if (installBtn) {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
-    console.log("[PWA] Install outcome:", outcome);
     deferredInstallPrompt = null;
-    installBanner.style.display = "none";
+    if (installBanner) installBanner.style.display = "none";
   });
 }
 
 if (installDismiss) {
   installDismiss.addEventListener("click", () => {
-    installBanner.style.display = "none";
-    // Don't show again for this session
+    if (installBanner) installBanner.style.display = "none";
     deferredInstallPrompt = null;
+    sessionStorage.setItem("gol-install-dismissed", "1");
   });
 }
 
 window.addEventListener("appinstalled", () => {
-  installBanner.style.display = "none";
+  if (installBanner) installBanner.style.display = "none";
   deferredInstallPrompt = null;
-  console.log("[PWA] App installed successfully");
 });
