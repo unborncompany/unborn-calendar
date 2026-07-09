@@ -213,6 +213,7 @@ const I18N = {
     life_thirst: "Thirst",
     life_level: "Level",
     life_use: "Use",
+    life_itemDeleted: "Removed from store",
     life_used: "Used!",
     life_consumeEffect: (stat, amt) => `${amt > 0 ? "+" : ""}${amt} ${stat}`,
     dash_miniStats: "Status",
@@ -239,6 +240,8 @@ const I18N = {
     toast_saved: "Saved.",
     toast_exported: "Save file exported.",
     toast_imported: "Save file imported.",
+    toast_importCancelled: "Import cancelled.",
+    import_confirm: "This will overwrite all current data. Continue?",
     toast_folderChosen: "Save folder set.",
     toast_quickSaved: "Quick saved.",
     toast_quickSaveFail: "Quick save failed \u2014 check permissions.",
@@ -462,6 +465,7 @@ const I18N = {
     life_thirst: "Sed",
     life_level: "Nivel",
     life_use: "Usar",
+    life_itemDeleted: "Eliminado de tienda",
     life_used: "\u00a1Usado!",
     life_consumeEffect: (stat, amt) => `${amt > 0 ? "+" : ""}${amt} ${stat}`,
     dash_miniStats: "Estado",
@@ -485,6 +489,8 @@ const I18N = {
     toast_saved: "Guardado.",
     toast_exported: "Archivo exportado.",
     toast_imported: "Archivo importado.",
+    toast_importCancelled: "Importaci\u00f3n cancelada.",
+    import_confirm: "Esto sobreescribir\u00e1 todos los datos actuales. \u00bfContinuar?",
     toast_folderChosen: "Carpeta configurada.",
     toast_quickSaved: "Guardado r\u00e1pido.",
     toast_quickSaveFail: "Error al guardar \u2014 revisa permisos.",
@@ -559,10 +565,11 @@ function loadLifeStats() {
         thirst: data.thirst ?? 70,
         level: data.level ?? 1,
         lastDecayAt: data.lastDecayAt || new Date().toISOString(),
+        lowSince: data.lowSince || null,
       };
     }
   } catch (e) {}
-  return { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString() };
+  return { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString(), lowSince: null };
 }
 
 function saveLifeStats() {
@@ -598,14 +605,21 @@ function processDecay() {
     lifeStats[stat] = Math.max(0, lifeStats[stat] - decay);
   }
 
-  // Health decay: only if both Hunger AND Thirst below threshold for 3+ days
+  // Health decay: track cumulative time both hunger & thirst are below threshold
   if (lifeStats.hunger < HEALTH_THRESHOLD && lifeStats.thirst < HEALTH_THRESHOLD) {
-    // Check how long both have been below threshold
-    // We approximate: if daysDiff >= HEALTH_DECAY_DAYS, apply health decay
-    if (daysDiff >= HEALTH_DECAY_DAYS) {
-      const healthDecay = HEALTH_DECAY_RATE * Math.floor(daysDiff / HEALTH_DECAY_DAYS);
-      lifeStats.health = Math.max(0, lifeStats.health - healthDecay);
+    // Start the clock if not already running
+    if (!lifeStats.lowSince) {
+      lifeStats.lowSince = now.toISOString();
     }
+    // Calculate cumulative days below threshold
+    const lowSinceMs = new Date(lifeStats.lowSince).getTime();
+    const totalLowDays = (now.getTime() - lowSinceMs) / (1000 * 60 * 60 * 24);
+    const periods = Math.floor(totalLowDays / HEALTH_DECAY_DAYS);
+    // Decay by one unit per period (each period = HEALTH_DECAY_RATE)
+    lifeStats.health = Math.max(0, lifeStats.health - HEALTH_DECAY_RATE * periods);
+  } else {
+    // Reset the clock when either stat recovers
+    lifeStats.lowSince = null;
   }
 
   // Update level
@@ -995,8 +1009,12 @@ function deadlineOf(entry) {
 }
 
 function getStatus(entry) {
-  const allDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
-  if (allDone) return "completed";
+  // Migration: if completedAt is missing but all todos are done, stamp it now
+  if (!entry.completedAt && entry.todos && entry.todos.length > 0 && entry.todos.every(t => t.done)) {
+    entry.completedAt = new Date().toISOString();
+    saveEntries();
+  }
+  if (entry.completedAt) return "completed";
   const now = new Date();
   return now > deadlineOf(entry) ? "pending" : "active";
 }
@@ -1084,7 +1102,8 @@ function renderSecTasks() {
   const tomorrow = tomorrowISO();
   const today = todayISO();
   const tomorrowTasks = secTasks.filter(t => t.targetDate === tomorrow);
-  const todayTasks = secTasks.filter(t => t.targetDate === today);
+  // Include today AND any overdue (targetDate <= today) so orphaned tasks stay visible
+  const todayTasks = secTasks.filter(t => t.targetDate <= today);
 
   const totalPoints = secTasks.reduce((s, t) => s + getSecTaskPoints(t), 0);
   const tomorrowDone = tomorrowTasks.filter(t => t.done).length;
@@ -1315,10 +1334,18 @@ function renderDayEntries(container, dayISO, emptyMsg) {
         // Update progress display
         const newDone = entry.todos.filter(t => t.done).length;
         header.querySelector(".dash-entry-progress").textContent = `${newDone}/${entry.todos.length} ${t("dash_done")}`;
+        // Record completedAt when allDone flips true; clear it if un-completed
+        const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
+        if (newAllDone && !entry.completedAt) {
+          entry.completedAt = new Date().toISOString();
+        } else if (!newAllDone) {
+          entry.completedAt = null;
+        }
         // Update status if needed
         const newStatus = getStatus(entry);
         wrap.className = `dash-entry-wrap status-${newStatus}` + (wrap.classList.contains("expanded") ? " expanded" : "");
         renderPointsSummary();
+        renderLifeStats();
       });
       todosDiv.appendChild(item);
     });
@@ -2059,10 +2086,21 @@ function gatherSaveData() {
 }
 
 function applySaveData(data) {
-  if (data.entries) entries = data.entries;
-  if (data.inventory) inventory = data.inventory;
-  if (data.secTasks) secTasks = data.secTasks;
-  if (data.deletedSecTasks) deletedSecTasks = data.deletedSecTasks;
+  // Validate critical arrays before assigning
+  if (data.entries && Array.isArray(data.entries)) {
+    entries = data.entries.map(e => ({
+      ...e,
+      todos: Array.isArray(e.todos) ? e.todos.map(t => ({
+        id: t.id || "t_" + Math.random().toString(36).slice(2, 7),
+        text: typeof t.text === "string" ? t.text : "",
+        done: !!t.done,
+      })) : [],
+      completedAt: e.completedAt || null,
+    }));
+  }
+  if (data.inventory && Array.isArray(data.inventory)) inventory = data.inventory;
+  if (data.secTasks && Array.isArray(data.secTasks)) secTasks = data.secTasks;
+  if (data.deletedSecTasks && Array.isArray(data.deletedSecTasks)) deletedSecTasks = data.deletedSecTasks;
   if (data.userProfile) userProfile = data.userProfile;
   if (data.lang) { lang = data.lang; localStorage.setItem(LANG_KEY, lang); document.getElementById("langSelect").value = lang; }
   if (data.theme) { theme = data.theme; localStorage.setItem(THEME_KEY, theme); document.getElementById("themeSelect").value = theme; applyTheme(); }
@@ -2109,6 +2147,10 @@ document.getElementById("importInput").addEventListener("change", (e) => {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
+      if (!confirm(t("import_confirm"))) {
+        showToast(t("toast_importCancelled"));
+        return;
+      }
       applySaveData(data);
       showToast(t("toast_imported"));
     } catch (err) {
@@ -2165,17 +2207,15 @@ function calcEntryPoints(entry) {
   if (status !== "completed") return 0;
 
   const deadline = deadlineOf(entry);
-  const now = new Date();
+  // Use the locked-in completion timestamp; fall back to "now" for legacy entries
+  const completedAt = entry.completedAt ? new Date(entry.completedAt) : new Date();
 
-  // Find when all todos were completed — use "now" as approximation
-  // since we don't track completion time.
-  // If deadline is in the past, completed after deadline.
-  if (now <= deadline) {
+  if (completedAt <= deadline) {
     return 5; // completed before deadline
   }
 
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  if (now - deadline > oneWeek) {
+  if (completedAt - deadline > oneWeek) {
     return -4; // deadline passed by 1+ week
   }
 
@@ -2430,7 +2470,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   redeemed = [];
   editPenalties = [];
   deletePenalties = [];
-  lifeStats = { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString() };
+  lifeStats = { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString(), lowSince: null };
   document.getElementById("langSelect").value = lang;
   document.getElementById("themeSelect").value = theme;
   document.getElementById("calViewSelect").value = calView;
@@ -2451,9 +2491,7 @@ function refreshAll() {
   document.getElementById("calViewSelect").value = calView;
   syncCalViewButtons();
   renderDashboard();
-  if (document.getElementById("panel-calendar").classList.contains("active")) {
-    applyCalView();
-  }
+  applyCalView();
   if (document.getElementById("panel-inventory").classList.contains("active")) {
     renderInventory();
   }
@@ -2991,7 +3029,7 @@ function openRedeemModal(item) {
   `;
 
   content.innerHTML = `
-    <p style="margin:0 0 8px;font-size:14px">${t("store_redeemMsg")(item.name, totalPts)}</p>
+    <p style="margin:0 0 8px;font-size:14px">${t("store_redeemMsg")(escapeHTML(item.name), totalPts)}</p>
     <p style="margin:0 0 4px;font-size:13px;color:var(--ink-soft)">${t("store_availPts")}: <strong>${available}</strong></p>
     <p style="margin:0;font-size:12px;color:var(--ink-soft)">${item.price} pts base${hasAccessories ? " + " + item.accessories.reduce((s, a) => s + (a.pts || 0), 0) + " accessories" : ""}</p>
     ${!canAfford ? `<p style="margin:8px 0 0;font-size:13px;color:var(--danger)">${t("store_notEnough")}</p>` : ""}
@@ -3220,7 +3258,7 @@ function renderLifeStats() {
   const levelPts = document.getElementById("lifeLevelPts");
   if (levelLabel) levelLabel.textContent = `${t("life_level")} ${lifeStats.level}`;
   const totalPts = calcTotalPoints();
-  const ptsIntoLevel = totalPts % POINTS_PER_LEVEL;
+  const ptsIntoLevel = ((totalPts % POINTS_PER_LEVEL) + POINTS_PER_LEVEL) % POINTS_PER_LEVEL;
   const levelProgress = (ptsIntoLevel / POINTS_PER_LEVEL) * 100;
   if (levelFill) levelFill.style.width = levelProgress + "%";
   if (levelPts) levelPts.textContent = `${ptsIntoLevel}/${POINTS_PER_LEVEL} pts`;
@@ -3277,15 +3315,25 @@ function renderLife() {
   items.forEach(item => {
     const invItem = inventory.find(i => i.id === item.itemId);
     const isConsumable = invItem && invItem.consumable && invItem.statEffects && invItem.statEffects.length > 0;
+    const itemDeleted = !invItem;
 
     const card = document.createElement("div");
-    card.className = "life-card" + (isConsumable ? " consumable" : "");
+    card.className = "life-card" + (isConsumable ? " consumable" : "") + (itemDeleted ? " item-deleted" : "");
 
     // Consumable badge
     if (isConsumable) {
       const badge = document.createElement("div");
       badge.className = "life-card-badge";
       badge.textContent = t("invModal_consumable");
+      card.appendChild(badge);
+    }
+
+    // Deleted from store badge
+    if (itemDeleted) {
+      const badge = document.createElement("div");
+      badge.className = "life-card-badge";
+      badge.style.background = "var(--danger)";
+      badge.textContent = t("life_itemDeleted");
       card.appendChild(badge);
     }
 
