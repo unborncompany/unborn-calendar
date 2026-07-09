@@ -15,6 +15,7 @@ const STORE_SPENT_KEY = "ledger.storeSpent.v1";
 const REDEEMED_KEY = "ledger.redeemed.v1";
 const EDIT_PENALTY_KEY = "ledger.editPenalties.v1";
 const DELETE_PENALTY_KEY = "ledger.deletePenalties.v1";
+const PET_STATS_KEY = "ledger.petStats.v1";
 
 /* ---------- Translations ---------- */
 const I18N = {
@@ -180,6 +181,11 @@ const I18N = {
     settings_supply: "Supply Store",
     settings_cloud: "Cloud Sync",
     settings_cloudHint: "Sign in with Google to sync your data across devices. When not signed in, all data stays local.",
+    pet_statsTitle: "Pet Stats",
+    pet_statsHint: "Use items to keep your pet healthy",
+    pet_use: "Use",
+    pet_cooldown: "Cooldown",
+    pet_consumable: "Consumable",
     settings_supplyHint: "Manage inventory items available in the store. Requires admin access.",
     settings_supplyBtn: "Open inventory",
     // Store
@@ -416,6 +422,11 @@ const I18N = {
     settings_supply: "Tienda de Suministros",
     settings_cloud: "Sincronización en la Nube",
     settings_cloudHint: "Inicia sesión con Google para sincronizar tus datos entre dispositivos. Si no inicias sesión, los datos permanecen locales.",
+    pet_statsTitle: "Estadísticas de Mascota",
+    pet_statsHint: "Usa artículos para mantener a tu mascota sana",
+    pet_use: "Usar",
+    pet_cooldown: "Enfriamiento",
+    pet_consumable: "Consumible",
     settings_supplyHint: "Gestiona los art\u00edculos disponibles en la tienda. Requiere acceso de administrador.",
     settings_supplyBtn: "Abrir inventario",
     store_title: "Tienda",
@@ -539,6 +550,93 @@ function saveDeletePenalties() {
 }
 let deletePenalties = loadDeletePenalties();
 
+/* ---------- Pet Stats ---------- */
+const DEFAULT_PET_STATS = {
+  energy: 80,
+  hunger: 70,
+  thirst: 70,
+  health: 100,
+  lastDecay: Date.now(),
+  lowSince: null, // timestamp when hunger+thirst both went <10
+  lastUsed: {},    // { redeemedId: { count, firstUse } } for non-consumable cooldown
+};
+
+function loadPetStats() {
+  try {
+    const raw = localStorage.getItem(PET_STATS_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Merge with defaults in case new fields were added
+      return { ...DEFAULT_PET_STATS, ...saved, lastUsed: saved.lastUsed || {} };
+    }
+  } catch (e) {}
+  return { ...DEFAULT_PET_STATS };
+}
+function savePetStats() {
+  try { localStorage.setItem(PET_STATS_KEY, JSON.stringify(petStats)); } catch (e) {}
+  scheduleCloudSave();
+}
+let petStats = loadPetStats();
+
+/* ---------- Pet Stats Decay ---------- */
+// Decay rates: points lost per hour
+const DECAY_RATES = {
+  energy: 1.5,   // ~36/day
+  hunger: 1.2,   // ~28.8/day
+  thirst: 1.8,   // ~43.2/day
+};
+const HEALTH_DECAY_THRESHOLD = 10;  // health decays when hunger AND thirst < this %
+const HEALTH_DECAY_DAYS = 3;        // must be low for this many days
+const HEALTH_DECAY_RATE = 0.8;      // health points lost per day when conditions met
+const STAT_MIN = 0;
+const STAT_MAX = 100;
+
+function clampStat(v) { return Math.max(STAT_MIN, Math.min(STAT_MAX, v)); }
+
+function processPetDecay() {
+  const now = Date.now();
+  const elapsed = now - petStats.lastDecay;
+  if (elapsed <= 0) return;
+
+  const hoursElapsed = elapsed / (1000 * 60 * 60);
+
+  // Continuous decay for energy, hunger, thirst
+  petStats.energy = clampStat(petStats.energy - DECAY_RATES.energy * hoursElapsed);
+  petStats.hunger = clampStat(petStats.hunger - DECAY_RATES.hunger * hoursElapsed);
+  petStats.thirst = clampStat(petStats.thirst - DECAY_RATES.thirst * hoursElapsed);
+
+  // Health decay: only when hunger AND thirst both < threshold for 3+ days
+  if (petStats.hunger < HEALTH_DECAY_THRESHOLD && petStats.thirst < HEALTH_DECAY_THRESHOLD) {
+    if (!petStats.lowSince) {
+      petStats.lowSince = now;
+    } else {
+      const daysLow = (now - petStats.lowSince) / (1000 * 60 * 60 * 24);
+      if (daysLow >= HEALTH_DECAY_DAYS) {
+        const healthDecay = HEALTH_DECAY_RATE * (hoursElapsed / 24);
+        petStats.health = clampStat(petStats.health - healthDecay);
+      }
+    }
+  } else {
+    // Reset low timer when either stat goes above threshold
+    petStats.lowSince = null;
+  }
+
+  // Clean up expired cooldowns for non-consumable items (>24h old)
+  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  for (const rid in petStats.lastUsed) {
+    if (now - petStats.lastUsed[rid].firstUse > COOLDOWN_MS) {
+      delete petStats.lastUsed[rid];
+    }
+  }
+
+  petStats.lastDecay = now;
+  savePetStats();
+}
+
+// Process decay on load and every 60 seconds
+processPetDecay();
+setInterval(() => { processPetDecay(); renderPetStats(); }, 60000);
+
 /* ---------- Firebase / Cloud Sync ---------- */
 let firebaseReady = false;
 let fb = null; // will hold Firebase modules once ready
@@ -637,6 +735,7 @@ function getCloudData() {
     redeemed: redeemed,
     editPenalties: editPenalties,
     deletePenalties: deletePenalties,
+    petStats: petStats,
     firedAlarms: firedAlarms,
     notifSound: notifSoundData,
     adminUser: adminUser,
@@ -684,6 +783,7 @@ async function loadFromCloud() {
       if (data.redeemed) redeemed = data.redeemed;
       if (data.editPenalties) editPenalties = data.editPenalties;
       if (data.deletePenalties) deletePenalties = data.deletePenalties;
+      if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; }
       if (data.firedAlarms) firedAlarms = data.firedAlarms;
       if (data.notifSound) notifSoundData = data.notifSound;
       if (data.adminUser) adminUser = data.adminUser;
@@ -742,6 +842,7 @@ function subscribeToCloud() {
     if (data.redeemed) redeemed = data.redeemed;
     if (data.editPenalties) editPenalties = data.editPenalties;
     if (data.deletePenalties) deletePenalties = data.deletePenalties;
+    if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; }
     if (data.firedAlarms) firedAlarms = data.firedAlarms;
     if (data.notifSound) notifSoundData = data.notifSound;
     // Update localStorage cache
@@ -1917,6 +2018,7 @@ function applySaveData(data) {
   if (data.redeemed) { redeemed = data.redeemed; saveRedeemed(); }
   if (data.editPenalties) { editPenalties = data.editPenalties; saveEditPenalties(); }
   if (data.deletePenalties) { deletePenalties = data.deletePenalties; saveDeletePenalties(); }
+  if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; savePetStats(); }
   if (data.notifSound) notifSoundData = data.notifSound;
   if (data.firedAlarms) firedAlarms = data.firedAlarms;
   saveEntries();
@@ -2333,6 +2435,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   localStorage.removeItem(REDEEMED_KEY);
   localStorage.removeItem(EDIT_PENALTY_KEY);
   localStorage.removeItem(DELETE_PENALTY_KEY);
+  localStorage.removeItem(PET_STATS_KEY);
   localStorage.removeItem(NOTIF_SOUND_KEY);
   localStorage.removeItem("ledger.firedAlarms.v1");
   localStorage.removeItem(LANG_KEY);
@@ -2350,6 +2453,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   redeemed = [];
   editPenalties = [];
   deletePenalties = [];
+  petStats = { ...DEFAULT_PET_STATS };
   document.getElementById("langSelect").value = lang;
   document.getElementById("themeSelect").value = theme;
   document.getElementById("calViewSelect").value = calView;
@@ -2384,6 +2488,7 @@ function refreshAll() {
   if (document.getElementById("panel-life").classList.contains("active")) {
     renderLife();
   }
+  renderPetStats();
 }
 
 /* ============ Inventory ============ */
@@ -2598,6 +2703,9 @@ function openInvModal(itemId) {
     document.getElementById("invItemPrice").value = item.price || 0;
     document.getElementById("invItemQty").value = item.quantity;
     document.getElementById("invItemCat").value = item.category;
+    document.getElementById("invItemEffectStat").value = item.effectStat || "";
+    document.getElementById("invItemEffectAmount").value = item.effectAmount || 0;
+    document.getElementById("invItemConsumable").checked = !!item.consumable;
     deleteBtn.style.display = "inline-block";
     if (item.image) {
       invImageData = item.image;
@@ -2655,6 +2763,9 @@ invForm.addEventListener("submit", (e) => {
   const price = parseFloat(document.getElementById("invItemPrice").value) || 0;
   const quantity = parseInt(document.getElementById("invItemQty").value, 10);
   const category = document.getElementById("invItemCat").value;
+  const effectStat = document.getElementById("invItemEffectStat").value || "";
+  const effectAmount = parseInt(document.getElementById("invItemEffectAmount").value, 10) || 0;
+  const consumable = document.getElementById("invItemConsumable").checked;
 
   if (!name || isNaN(quantity)) return;
 
@@ -2677,9 +2788,12 @@ invForm.addEventListener("submit", (e) => {
     item.category = category;
     item.accessories = accessories;
     item.image = invImageData || null;
+    item.effectStat = effectStat;
+    item.effectAmount = effectAmount;
+    item.consumable = consumable;
     showToast(t("toast_itemUpdated"));
   } else {
-    inventory.push({ id: uid(), name, description, price, quantity, category, accessories, image: invImageData || null });
+    inventory.push({ id: uid(), name, description, price, quantity, category, accessories, image: invImageData || null, effectStat, effectAmount, consumable });
     showToast(t("toast_itemAdded"));
   }
 
@@ -3073,9 +3187,144 @@ function renderLife() {
     date.textContent = t("life_date")(d.toLocaleDateString());
     body.appendChild(date);
 
+    // Check if this item has a stat effect
+    const invItem = inventory.find(i => i.id === item.itemId);
+    if (invItem && invItem.effectStat && invItem.effectAmount > 0) {
+      const useBtn = document.createElement("button");
+      useBtn.className = "btn btn-primary btn-small life-use-btn";
+      useBtn.textContent = `Use (+${invItem.effectAmount} ${invItem.effectStat})`;
+
+      // Check cooldown for non-consumable
+      if (!invItem.consumable && item.id) {
+        const usage = petStats.lastUsed[item.id];
+        const now = Date.now();
+        const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+        if (usage && usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
+          const hoursLeft = Math.ceil((COOLDOWN_MS - (now - usage.firstUse)) / (1000 * 60 * 60));
+          useBtn.disabled = true;
+          useBtn.textContent = `Cooldown (${hoursLeft}h)`;
+          useBtn.classList.add("cooldown");
+        }
+      }
+
+      useBtn.addEventListener("click", () => useItemOnPet(item));
+      body.appendChild(useBtn);
+    }
+
+    // Show consumable badge
+    if (invItem && invItem.consumable) {
+      const badge = document.createElement("span");
+      badge.className = "life-card-badge consumable";
+      badge.textContent = "Consumable";
+      body.appendChild(badge);
+    }
+
     card.appendChild(body);
     grid.appendChild(card);
   });
+}
+
+/* ============ Pet Stats UI ============ */
+function renderPetStats() {
+  const energySlider = document.getElementById("statEnergy");
+  const hungerSlider = document.getElementById("statHunger");
+  const thirstSlider = document.getElementById("statThirst");
+  const healthSlider = document.getElementById("statHealth");
+  const energyVal = document.getElementById("statEnergyVal");
+  const hungerVal = document.getElementById("statHungerVal");
+  const thirstVal = document.getElementById("statThirstVal");
+  const healthVal = document.getElementById("statHealthVal");
+  const warning = document.getElementById("petWarning");
+
+  if (!energySlider) return;
+
+  energySlider.value = Math.round(petStats.energy);
+  hungerSlider.value = Math.round(petStats.hunger);
+  thirstSlider.value = Math.round(petStats.thirst);
+  healthSlider.value = Math.round(petStats.health);
+  energyVal.textContent = Math.round(petStats.energy);
+  hungerVal.textContent = Math.round(petStats.hunger);
+  thirstVal.textContent = Math.round(petStats.thirst);
+  healthVal.textContent = Math.round(petStats.health);
+
+  // Update slider gradient fills
+  updateSliderFill(energySlider, petStats.energy);
+  updateSliderFill(hungerSlider, petStats.hunger);
+  updateSliderFill(thirstSlider, petStats.thirst);
+  updateSliderFill(healthSlider, petStats.health);
+
+  // Show warnings
+  if (petStats.health < 20) {
+    warning.style.display = "block";
+    warning.textContent = "Your pet is in poor health! Feed and hydrate them.";
+    warning.className = "pet-warning danger";
+  } else if (petStats.energy < 15 || petStats.hunger < 15 || petStats.thirst < 15) {
+    warning.style.display = "block";
+    const low = [];
+    if (petStats.energy < 15) low.push("energy");
+    if (petStats.hunger < 15) low.push("hunger");
+    if (petStats.thirst < 15) low.push("thirst");
+    warning.textContent = `Low ${low.join(" and ")}! Use items to restore.`;
+    warning.className = "pet-warning warn";
+  } else {
+    warning.style.display = "none";
+  }
+}
+
+function updateSliderFill(slider, value) {
+  const pct = value + "%";
+  const color = value > 50 ? "#3d8b6e" : value > 25 ? "#f59e0b" : "#ef4444";
+  slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}, #e2e0d8 ${pct}, #e2e0d8 100%)`;
+}
+
+function useItemOnPet(redeemedEntry) {
+  // Find the original inventory item to get effect info
+  const invItem = inventory.find(i => i.id === redeemedEntry.itemId);
+  if (!invItem || !invItem.effectStat || !invItem.effectAmount) return;
+
+  const stat = invItem.effectStat;
+  const amount = invItem.effectAmount;
+  const now = Date.now();
+  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+  // Check cooldown for non-consumable items (2 uses per day, 24h cooldown)
+  if (!invItem.consumable) {
+    const usage = petStats.lastUsed[redeemedEntry.id];
+    if (usage) {
+      if (usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
+        showToast("Wait 24h before using this item again");
+        return;
+      }
+      // Reset count if cooldown expired
+      if ((now - usage.firstUse) >= COOLDOWN_MS) {
+        delete petStats.lastUsed[redeemedEntry.id];
+      }
+    }
+  }
+
+  // Apply effect
+  petStats[stat] = clampStat(petStats[stat] + amount);
+  petStats.lastDecay = now;
+
+  // Handle consumable: remove from redeemed list
+  if (invItem.consumable) {
+    const idx = redeemed.findIndex(r => r.id === redeemedEntry.id);
+    if (idx !== -1) redeemed.splice(idx, 1);
+    saveRedeemed();
+    showToast(`Used ${invItem.name} — ${stat} +${amount}`);
+  } else {
+    // Track usage for cooldown
+    if (!petStats.lastUsed[redeemedEntry.id]) {
+      petStats.lastUsed[redeemedEntry.id] = { count: 1, firstUse: now };
+    } else {
+      petStats.lastUsed[redeemedEntry.id].count++;
+    }
+    showToast(`Used ${invItem.name} — ${stat} +${amount} (${2 - (petStats.lastUsed[redeemedEntry.id].count - 1)} uses left today)`);
+  }
+
+  savePetStats();
+  renderPetStats();
+  renderLife();
 }
 
 /* ============ Inventory Export / Import ============ */

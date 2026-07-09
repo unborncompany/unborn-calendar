@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Game of Life — Planner</title>
+<title>Game of Life — Daily Planner</title>
 
 <!-- PWA Meta Tags -->
 <link rel="manifest" href="manifest.json">
@@ -69,7 +69,7 @@
   <!-- Header -->
   <header class="app-header">
     <div class="brand">
-      <span class="brand-mark">🧬</span>
+      <span class="brand-mark">§</span>
       <h1>Game of Life</h1>
     </div>
     <nav class="tabs" role="tablist">
@@ -363,6 +363,42 @@
         <span class="store-hero-num" id="lifeTotalItems">0</span>
       </div>
     </div>
+    <!-- Pet Stats -->
+    <div class="pet-stats-panel" id="petStatsPanel">
+      <div class="pet-stats-header">
+        <span class="pet-stats-title">Pet Stats</span>
+        <span class="pet-stats-hint subtle" id="petStatsHint">Use items to keep your pet healthy</span>
+      </div>
+      <div class="pet-stat-row">
+        <label class="pet-stat-label" for="statEnergy">
+          <span class="pet-stat-icon">&#9889;</span> Energy
+        </label>
+        <input type="range" class="pet-stat-slider stat-energy" id="statEnergy" min="0" max="100" value="80" disabled>
+        <span class="pet-stat-value" id="statEnergyVal">80</span>
+      </div>
+      <div class="pet-stat-row">
+        <label class="pet-stat-label" for="statHunger">
+          <span class="pet-stat-icon">&#127830;</span> Hunger
+        </label>
+        <input type="range" class="pet-stat-slider stat-hunger" id="statHunger" min="0" max="100" value="70" disabled>
+        <span class="pet-stat-value" id="statHungerVal">70</span>
+      </div>
+      <div class="pet-stat-row">
+        <label class="pet-stat-label" for="statThirst">
+          <span class="pet-stat-icon">&#128167;</span> Thirst
+        </label>
+        <input type="range" class="pet-stat-slider stat-thirst" id="statThirst" min="0" max="100" value="70" disabled>
+        <span class="pet-stat-value" id="statThirstVal">70</span>
+      </div>
+      <div class="pet-stat-row">
+        <label class="pet-stat-label" for="statHealth">
+          <span class="pet-stat-icon">&#10084;&#65039;</span> Health
+        </label>
+        <input type="range" class="pet-stat-slider stat-health" id="statHealth" min="0" max="100" value="100" disabled>
+        <span class="pet-stat-value" id="statHealthVal">100</span>
+      </div>
+      <div class="pet-warning" id="petWarning" style="display:none"></div>
+    </div>
     <div class="filter-group" id="lifeFilters"></div>
     <div class="life-grid" id="lifeGrid"></div>
   </main>
@@ -419,6 +455,30 @@
         <div id="invAccList" class="todo-input-list"></div>
         <button type="button" class="btn btn-ghost btn-small" id="invAddAccRow">+ Add accessory</button>
       </div>
+      <div class="field-section-divider">
+        <span class="divider-label">Pet Stat Effect</span>
+      </div>
+      <p class="subtle" style="margin:0 0 10px;font-size:12px">Make this item affect your pet's stats in the Life tab.</p>
+      <div class="field-row">
+        <label class="field">
+          <span id="invLabelEffectStat">Stat</span>
+          <select id="invItemEffectStat">
+            <option value="">None</option>
+            <option value="energy">Energy</option>
+            <option value="hunger">Hunger</option>
+            <option value="thirst">Thirst</option>
+            <option value="health">Health</option>
+          </select>
+        </label>
+        <label class="field">
+          <span id="invLabelEffectAmount">Effect Amount</span>
+          <input type="number" id="invItemEffectAmount" min="0" max="100" value="0" placeholder="e.g. 20">
+        </label>
+      </div>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="invItemConsumable" style="width:16px;height:16px">
+        <span id="invLabelConsumable">Consumable <em>(removed from acquired items when used)</em></span>
+      </label>
       <div class="modal-actions">
         <button type="button" class="btn btn-danger" id="invDeleteBtn" style="margin-right:auto;display:none">Delete</button>
         <button type="button" class="btn btn-ghost" id="invCancelBtn">Cancel</button>
