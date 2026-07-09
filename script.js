@@ -2198,11 +2198,10 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
-    if (btn.dataset.tab === "dashboard") renderDashboard();
     if (btn.dataset.tab === "calendar") applyCalView();
     if (btn.dataset.tab === "inventory") renderInventory();
     if (btn.dataset.tab === "store") renderStore();
-    if (btn.dataset.tab === "life") renderLife();
+    if (btn.dataset.tab === "life") { renderLife(); renderDashboard(); }
     if (btn.dataset.tab === "settings") updateSoundUI();
   });
 });
@@ -2212,7 +2211,6 @@ function applyTranslations() {
   // Page title
   document.title = lang === "es" ? "Game of Life \u2014 Planificador Diario" : "Game of Life \u2014 Daily Planner";
   // Tabs
-  document.querySelector('[data-tab="dashboard"]').textContent = t("tab_dashboard");
   document.querySelector('[data-tab="calendar"]').textContent = t("tab_calendar");
   document.querySelector('[data-tab="store"]').textContent = t("store_title");
   document.querySelector('[data-tab="life"]').textContent = t("life_title");
@@ -2226,7 +2224,7 @@ function applyTranslations() {
   const weekdays = document.querySelectorAll(".cal-weekdays span");
   t("cal_weekdays").forEach((w, i) => { if (weekdays[i]) weekdays[i].textContent = w; });
   // Dashboard
-  document.querySelector("#panel-dashboard .dash-secondary-head h2").textContent = t("dash_secondary");
+  document.querySelector("#panel-life .dash-secondary-head h2").textContent = t("dash_secondary");
   // Inventory
   document.querySelector("#panel-inventory .panel-head h2").textContent = t("inv_title");
   document.getElementById("invAddBtn").textContent = t("inv_addItem");
@@ -2463,11 +2461,7 @@ function refreshAll() {
     renderStore();
   }
   renderPointsSummary();
-  if (document.getElementById("panel-life").classList.contains("active")) {
-    renderLife();
-  } else {
-    renderLifeStats();
-  }
+  renderLife();
 }
 
 /* ============ Inventory ============ */
