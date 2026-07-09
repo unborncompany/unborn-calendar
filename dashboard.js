@@ -77,6 +77,7 @@ function renderSecTasks() {
           setTimeout(() => {
             renderSecTasks();
             renderPointsSummary();
+            renderLifeStats();
           }, 300);
         } else {
           task.done = false;
@@ -84,6 +85,7 @@ function renderSecTasks() {
           saveSecTasks();
           renderSecTasks();
           renderPointsSummary();
+          renderLifeStats();
         }
       });
 
@@ -133,6 +135,7 @@ function renderSecTasks() {
         setTimeout(() => {
           renderSecTasks();
           renderPointsSummary();
+          renderLifeStats();
         }, 300);
       } else {
         task.done = false;
@@ -140,6 +143,7 @@ function renderSecTasks() {
         saveSecTasks();
         renderSecTasks();
         renderPointsSummary();
+        renderLifeStats();
       }
     });
 

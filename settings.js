@@ -291,7 +291,7 @@ function applyTranslations() {
   // Store
   document.getElementById("storeTitle").textContent = t("store_title");
   document.getElementById("storeSummary").textContent = t("store_summary");
-  document.getElementById("storeAvailLabel").textContent = t("store_availPts");
+  document.getElementById("storePtsAvailLabel").textContent = t("store_availPts");
   // Life
   document.getElementById("lifeTitle").textContent = t("life_title");
   document.getElementById("lifeSummary").textContent = t("life_summary");
