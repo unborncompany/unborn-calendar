@@ -1104,9 +1104,10 @@ function renderSecTasks() {
   const todaySection = document.getElementById("secTodaySection");
   const todayList = document.getElementById("secTodayList");
   todayList.innerHTML = "";
-  if (todayTasks.length > 0) {
+  const todayIncomplete = todayTasks.filter(t => !t.done);
+  if (todayIncomplete.length > 0) {
     todaySection.style.display = "block";
-    todayTasks.forEach(task => {
+    todayIncomplete.forEach(task => {
       const pts = getSecTaskPoints(task);
       const item = document.createElement("div");
       item.className = "sec-task-item" + (task.done ? " done" : "") + (pts < 0 ? " missed" : "");
@@ -1116,11 +1117,26 @@ function renderSecTasks() {
       check.className = "sec-task-check";
       check.checked = task.done;
       check.addEventListener("change", () => {
-        task.done = check.checked;
-        task.doneAt = check.checked ? new Date().toISOString() : null;
-        saveSecTasks();
-        renderSecTasks();
-        renderScoreboard();
+        if (check.checked) {
+          // Mark as done and remove from list
+          task.done = true;
+          task.doneAt = new Date().toISOString();
+          saveSecTasks();
+          // Animate removal
+          item.style.transition = "opacity 0.3s, transform 0.3s";
+          item.style.opacity = "0";
+          item.style.transform = "translateX(20px)";
+          setTimeout(() => {
+            renderSecTasks();
+            renderScoreboard();
+          }, 300);
+        } else {
+          task.done = false;
+          task.doneAt = null;
+          saveSecTasks();
+          renderSecTasks();
+          renderScoreboard();
+        }
       });
 
       const text = document.createElement("span");
@@ -1141,12 +1157,13 @@ function renderSecTasks() {
   }
 
   // Tomorrow's secondary tasks (with add/remove)
-  if (tomorrowTasks.length === 0) {
+  const tomorrowIncomplete = tomorrowTasks.filter(t => !t.done);
+  if (tomorrowIncomplete.length === 0) {
     list.innerHTML = `<div class="empty-state" style="padding:12px"><span>${t("dash_clear")}</span>${t("dash_secNoTasks")}</div>`;
     return;
   }
 
-  tomorrowTasks.forEach(task => {
+  tomorrowIncomplete.forEach(task => {
     const pts = getSecTaskPoints(task);
     const item = document.createElement("div");
     item.className = "sec-task-item" + (task.done ? " done" : "") + (pts < 0 ? " missed" : "");
@@ -1156,11 +1173,26 @@ function renderSecTasks() {
     check.className = "sec-task-check";
     check.checked = task.done;
     check.addEventListener("change", () => {
-      task.done = check.checked;
-      task.doneAt = check.checked ? new Date().toISOString() : null;
-      saveSecTasks();
-      renderSecTasks();
-      renderScoreboard();
+      if (check.checked) {
+        // Mark as done and remove from list
+        task.done = true;
+        task.doneAt = new Date().toISOString();
+        saveSecTasks();
+        // Animate removal
+        item.style.transition = "opacity 0.3s, transform 0.3s";
+        item.style.opacity = "0";
+        item.style.transform = "translateX(20px)";
+        setTimeout(() => {
+          renderSecTasks();
+          renderScoreboard();
+        }, 300);
+      } else {
+        task.done = false;
+        task.doneAt = null;
+        saveSecTasks();
+        renderSecTasks();
+        renderScoreboard();
+      }
     });
 
     const text = document.createElement("span");
@@ -1295,7 +1327,6 @@ function renderDayEntries(container, dayISO, emptyMsg) {
 }
 
 function renderDashboardMiniStats() {
-  processDecay();
   const stats = ["health", "energy", "hunger", "thirst"];
   const labels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
   const icons = { health: "\u2764", energy: "\u26A1", hunger: "\uD83C\uDF56", thirst: "\uD83D\uDCA7" };
@@ -2505,6 +2536,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
 });
 
 function refreshAll() {
+  processDecay();
   loadProfileUI();
   applyTranslations();
   applyTheme();
@@ -2914,8 +2946,9 @@ function renderStore() {
   grid.innerHTML = "";
 
   const total = calcTotalPoints();
-  document.getElementById("storeAvailPts").textContent = total;
-  document.getElementById("storeAvailPts").className = "store-hero-num" + (total < 0 ? " negative" : "");
+  const available = total - storeSpent;
+  document.getElementById("storeAvailPts").textContent = available;
+  document.getElementById("storeAvailPts").className = "store-hero-num" + (available < 0 ? " negative" : "");
 
   // Spent bar
   const spentBar = document.getElementById("storeSpentBar");
@@ -2942,17 +2975,17 @@ function renderStore() {
     filtersEl.appendChild(chip);
   });
 
-  let available = inventory.filter(item => item.quantity > 0);
+  let storeItems = inventory.filter(item => item.quantity > 0);
   if (activeStoreFilter !== "all") {
-    available = available.filter(item => item.category === activeStoreFilter);
+    storeItems = storeItems.filter(item => item.category === activeStoreFilter);
   }
 
-  if (available.length === 0) {
+  if (storeItems.length === 0) {
     grid.innerHTML = `<div class="empty-state store-empty"><span>${t("dash_empty")}</span>${t("store_addFirst")}</div>`;
     return;
   }
 
-  available.forEach(item => {
+  storeItems.forEach(item => {
     const card = document.createElement("div");
     card.className = "store-card";
 
@@ -3019,12 +3052,13 @@ function renderStore() {
 function openRedeemModal(item) {
   currentRedeemItem = item;
   const total = calcTotalPoints();
+  const available = total - storeSpent;
   const content = document.getElementById("redeemContent");
 
-  const canAfford = total >= item.price;
+  const canAfford = available >= item.price;
   const inStock = item.quantity > 0;
   const hasAccessories = item.accessories && item.accessories.length > 0;
-  const maxQty = Math.min(item.quantity, Math.floor(total / item.price)) || 1;
+  const maxQty = Math.min(item.quantity, Math.floor(available / item.price)) || 1;
 
   let accHtml = "";
   if (hasAccessories) {
@@ -3062,7 +3096,7 @@ function openRedeemModal(item) {
 
   content.innerHTML = `
     <p style="margin:0 0 8px;font-size:14px">${t("store_redeemMsg")(item.name, totalPts)}</p>
-    <p style="margin:0 0 4px;font-size:13px;color:var(--ink-soft)">${t("store_availPts")}: <strong>${total}</strong></p>
+    <p style="margin:0 0 4px;font-size:13px;color:var(--ink-soft)">${t("store_availPts")}: <strong>${available}</strong></p>
     <p style="margin:0;font-size:12px;color:var(--ink-soft)">${item.price} pts base${hasAccessories ? " + " + item.accessories.reduce((s, a) => s + (a.pts || 0), 0) + " accessories" : ""}</p>
     ${!canAfford ? `<p style="margin:8px 0 0;font-size:13px;color:var(--danger)">${t("store_notEnough")}</p>` : ""}
     ${!inStock ? `<p style="margin:8px 0 0;font-size:13px;color:var(--danger)">${t("store_outOfStock")}</p>` : ""}
@@ -3088,7 +3122,7 @@ function openRedeemModal(item) {
     const grandTotal = unitCost * selectedQty;
     qtyValue.textContent = selectedQty;
     qtyTotalPts.textContent = grandTotal + " pts";
-    const canNow = total >= grandTotal && selectedQty <= item.quantity;
+    const canNow = available >= grandTotal && selectedQty <= item.quantity;
     qtyTotalPts.className = "redeem-qty-total-pts" + (canNow ? "" : " too-expensive");
     confirmBtn.disabled = !canNow;
     confirmBtn.style.opacity = canNow ? "1" : "0.5";
@@ -3102,7 +3136,7 @@ function openRedeemModal(item) {
   });
 
   qtyPlus.addEventListener("click", () => {
-    const maxAffordable = Math.floor(total / (item.price + (hasAccessories ? item.accessories.reduce((s, a) => s + (a.pts || 0), 0) : 0)));
+    const maxAffordable = Math.floor(available / (item.price + (hasAccessories ? item.accessories.reduce((s, a) => s + (a.pts || 0), 0) : 0)));
     const maxAvailable = item.quantity;
     const maxAllowed = Math.min(maxAffordable, maxAvailable);
     if (selectedQty < maxAllowed) {
@@ -3125,7 +3159,6 @@ function openRedeemModal(item) {
 
   // Store qty on the button for the confirm handler
   confirmBtn.dataset.qty = 1;
-  const origClickHandler = confirmBtn.onclick;
   confirmBtn.onclick = () => {
     confirmBtn.dataset.qty = selectedQty;
     redeemConfirmWithQty();
@@ -3149,6 +3182,7 @@ function redeemConfirmWithQty() {
   if (!currentRedeemItem) return;
   const item = currentRedeemItem;
   const total = calcTotalPoints();
+  const available = total - storeSpent;
   const confirmBtn = document.getElementById("redeemConfirmBtn");
   const qty = parseInt(confirmBtn.dataset.qty) || 1;
 
@@ -3168,7 +3202,7 @@ function redeemConfirmWithQty() {
   const unitCost = item.price + selectedAccPts;
   const grandTotal = unitCost * qty;
 
-  if (total < grandTotal || item.quantity < qty) return;
+  if (available < grandTotal || item.quantity < qty) return;
 
   // Deduct points by increasing storeSpent
   storeSpent += grandTotal;
@@ -3198,10 +3232,6 @@ function redeemConfirmWithQty() {
   renderScoreboard();
   showToast(t("store_redeemed") + (qty > 1 ? ` x${qty}` : ""));
 }
-
-document.getElementById("redeemConfirmBtn").addEventListener("click", () => {
-  redeemConfirmWithQty();
-});
 
 /* ============ Admin Login ============ */
 document.getElementById("supplyStoreBtn").addEventListener("click", () => {
@@ -3266,8 +3296,6 @@ document.getElementById("invImageRemove").addEventListener("click", () => {
 
 /* ============ Life Tab ============ */
 function renderLifeStats() {
-  processDecay();
-
   const stats = ["health", "energy", "hunger", "thirst"];
   const labels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
 
