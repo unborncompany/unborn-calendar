@@ -23,8 +23,6 @@ const I18N = {
     // Tabs
     tab_dashboard: "Dashboard",
     tab_calendar: "Calendar",
-    tab_inventory: "Inventory",
-    tab_scoreboard: "Scoreboard",
     tab_settings: "Settings",
     // Header
     btn_newEntry: "+ New entry",
@@ -193,6 +191,9 @@ const I18N = {
     store_addFirst: "Add items in the Supply Store first.",
     store_qtyLeft: (n) => `${n} left`,
     store_redeem: "Redeem",
+    pts_earned: "Earned",
+    pts_spent: "Spent",
+    pts_available: "Available",
     store_redeemTitle: "Redeem Item",
     store_redeemConfirm: "Confirm",
     store_redeemMsg: (name, pts) => `Redeem "${name}" for ${pts} points?`,
@@ -283,8 +284,6 @@ const I18N = {
   es: {
     tab_dashboard: "Panel",
     tab_calendar: "Calendario",
-    tab_inventory: "Inventario",
-    tab_scoreboard: "Marcador",
     tab_settings: "Ajustes",
     btn_newEntry: "+ Nueva entrada",
     btn_quickSave: "\u{1F4BE} Guardar r\u00e1pido",
@@ -446,6 +445,9 @@ const I18N = {
     store_redeemConfirm: "Confirmar",
     store_redeemMsg: (name, pts) => `\u00bfCanjear "${name}" por ${pts} puntos?`,
     store_redeemed: "\u00a1Art\u00edculo canjeado!",
+    pts_earned: "Ganados",
+    pts_spent: "Gastados",
+    pts_available: "Disponibles",
     store_notEnough: "Puntos insuficientes.",
     store_outOfStock: "Sin stock.",
     life_title: "Vida",
@@ -1128,14 +1130,14 @@ function renderSecTasks() {
           item.style.transform = "translateX(20px)";
           setTimeout(() => {
             renderSecTasks();
-            renderScoreboard();
+            renderPointsSummary();
           }, 300);
         } else {
           task.done = false;
           task.doneAt = null;
           saveSecTasks();
           renderSecTasks();
-          renderScoreboard();
+          renderPointsSummary();
         }
       });
 
@@ -1184,14 +1186,14 @@ function renderSecTasks() {
         item.style.transform = "translateX(20px)";
         setTimeout(() => {
           renderSecTasks();
-          renderScoreboard();
+          renderPointsSummary();
         }, 300);
       } else {
         task.done = false;
         task.doneAt = null;
         saveSecTasks();
         renderSecTasks();
-        renderScoreboard();
+        renderPointsSummary();
       }
     });
 
@@ -1217,7 +1219,7 @@ function renderSecTasks() {
       secTasks = secTasks.filter(t => t.id !== task.id);
       saveSecTasks();
       renderSecTasks();
-      renderScoreboard();
+      renderPointsSummary();
       showToast(t("dash_secDeleted"));
     });
 
@@ -1316,7 +1318,7 @@ function renderDayEntries(container, dayISO, emptyMsg) {
         // Update status if needed
         const newStatus = getStatus(entry);
         wrap.className = `dash-entry-wrap status-${newStatus}` + (wrap.classList.contains("expanded") ? " expanded" : "");
-        renderScoreboard();
+        renderPointsSummary();
       });
       todosDiv.appendChild(item);
     });
@@ -1353,6 +1355,33 @@ function renderDashboardMiniStats() {
     `;
     container.appendChild(div);
   });
+}
+
+function renderPointsSummary() {
+  const total = calcTotalPoints();
+  const available = total - storeSpent;
+  const dashEarned = document.getElementById("dashPtsEarned");
+  const dashSpent = document.getElementById("dashPtsSpent");
+  const dashAvail = document.getElementById("dashPtsAvail");
+  const storeEarned = document.getElementById("storePtsEarned");
+  const storeSpentEl = document.getElementById("storePtsSpent");
+  const storeAvail = document.getElementById("storePtsAvail");
+  if (dashEarned) dashEarned.textContent = total;
+  if (dashSpent) dashSpent.textContent = storeSpent;
+  if (dashAvail) {
+    dashAvail.textContent = available;
+    dashAvail.className = "points-summary-val points-val-avail" + (available < 0 ? " negative" : "");
+  }
+  if (storeEarned) storeEarned.textContent = total;
+  if (storeSpentEl) storeSpentEl.textContent = storeSpent;
+  if (storeAvail) {
+    storeAvail.textContent = available;
+    storeAvail.className = "points-summary-val points-val-avail" + (available < 0 ? " negative" : "");
+  }
+  // Labels
+  document.querySelectorAll("#dashPtsEarnedLabel, #storePtsEarnedLabel").forEach(el => { el.textContent = t("pts_earned"); });
+  document.querySelectorAll("#dashPtsSpentLabel, #storePtsSpentLabel").forEach(el => { el.textContent = t("pts_spent"); });
+  document.querySelectorAll("#dashPtsAvailLabel, #storePtsAvailLabel").forEach(el => { el.textContent = t("pts_available"); });
 }
 
 function renderDashboard() {
@@ -1423,6 +1452,7 @@ function renderDashboard() {
   renderDayEntries(document.getElementById("dashTomorrowList"), tomorrow, t("dash_nothingTomorrow"));
 
   renderDashboardMiniStats();
+  renderPointsSummary();
   renderSecTasks();
 }
 
@@ -2204,76 +2234,7 @@ function calcTotalPoints() {
   return entryPts + secPts + deletedPts + editPts + deletePts;
 }
 
-function renderScoreboard() {
-  const total = calcTotalPoints();
-  const totalEl = document.getElementById("scoreTotal");
-  const slider = document.getElementById("scoreSlider");
-
-  totalEl.textContent = total;
-  totalEl.className = "score-total" + (total < 0 ? " negative" : "");
-
-  // Slider
-  const allPts = [
-    ...entries.map(e => calcEntryPoints(e)),
-    ...secTasks.map(t => getSecTaskPoints(t)),
-    ...deletedSecTasks.map(() => -1),
-  ];
-  const maxPts = Math.max(100, ...allPts.filter(p => p > 0), total);
-  slider.max = maxPts;
-  slider.value = Math.max(0, total);
-
-  // Breakdown
-  const breakdown = document.getElementById("scoreBreakdown");
-  breakdown.innerHTML = "";
-
-  const allScored = [
-    ...entries
-      .filter(e => getStatus(e) === "completed")
-      .map(e => ({ name: e.name, pts: calcEntryPoints(e), type: "task" })),
-    ...secTasks
-      .map(task => {
-        const pts = getSecTaskPoints(task);
-        const label = pts === 3 ? t("score_secBefore") : pts === 1 ? t("score_secAfter") : pts === -2 ? t("score_secMissed") : "";
-        return { name: task.name, pts, type: "secondary", label };
-      })
-      .filter(x => x.pts !== 0),
-    ...deletedSecTasks
-      .map(task => ({ name: task.name, pts: -1, type: "deleted", label: t("score_secDeleted") })),
-    ...editPenalties
-      .map(p => ({ name: p.name + " (edited)", pts: -1, type: "penalty", label: t("score_penaltyEdit") })),
-    ...deletePenalties
-      .map(p => ({ name: p.name + " (deleted)", pts: -2, type: "penalty", label: t("score_penaltyDelete") })),
-  ].sort((a, b) => b.pts - a.pts);
-
-  if (allScored.length === 0) {
-    breakdown.innerHTML = `<div class="empty-state"><span>${t("score_noScores")}</span>${t("score_noScoresHint")}</div>`;
-    return;
-  }
-
-  allScored.forEach(({ name, pts, type, label }) => {
-    const row = document.createElement("div");
-    row.className = "score-entry" + (type === "penalty" ? " penalty" : "");
-    let statusLabel;
-    if (type === "secondary" || type === "deleted" || type === "penalty") {
-      statusLabel = label;
-    } else {
-      statusLabel = pts === 5 ? t("score_beforeDeadline") : pts === 2 ? t("score_afterDeadline") : pts === -4 ? t("score_late1wk") : "";
-    }
-    row.innerHTML = `
-      <span class="score-entry-name">${escapeHTML(name)} <span class="subtle" style="font-weight:400">(${statusLabel})</span></span>
-      <span class="score-entry-points ${pts >= 0 ? "pos" : "neg"}">${pts >= 0 ? "+" : ""}${pts}</span>
-    `;
-    breakdown.appendChild(row);
-  });
-
-  // Summary text
-  const completedCount = entries.filter(e => getStatus(e) === "completed").length;
-  const secDone = secTasks.filter(t => t.done).length;
-  const deletedCount = deletedSecTasks.length;
-  document.getElementById("scoreSummary").textContent = t("score_summaryText")(completedCount, secDone, deletedCount, total);
-}
-
-// Listen to tab changes for scoreboard
+// Listen to tab changes
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -2282,7 +2243,6 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
     if (btn.dataset.tab === "calendar") applyCalView();
     if (btn.dataset.tab === "inventory") renderInventory();
-    if (btn.dataset.tab === "scoreboard") renderScoreboard();
     if (btn.dataset.tab === "store") renderStore();
     if (btn.dataset.tab === "life") renderLife();
     if (btn.dataset.tab === "settings") updateSoundUI();
@@ -2296,7 +2256,6 @@ function applyTranslations() {
   // Tabs
   document.querySelector('[data-tab="dashboard"]').textContent = t("tab_dashboard");
   document.querySelector('[data-tab="calendar"]').textContent = t("tab_calendar");
-  document.querySelector('[data-tab="scoreboard"]').textContent = t("tab_scoreboard");
   document.querySelector('[data-tab="store"]').textContent = t("store_title");
   document.querySelector('[data-tab="life"]').textContent = t("life_title");
   document.querySelector('[data-tab="settings"]').textContent = t("tab_settings");
@@ -2320,17 +2279,10 @@ function applyTranslations() {
   document.querySelector(".inv-table-head .inv-col-price").textContent = t("inv_colPrice");
   document.querySelector(".inv-table-head .inv-col-qty").textContent = t("inv_colQty");
   document.querySelector(".inv-table-head .inv-col-cat").textContent = t("inv_colCat");
-  // Scoreboard
-  document.querySelector("#panel-scoreboard .panel-head h2").textContent = t("score_title");
-  document.getElementById("scoreTotal").textContent = "0";
-  document.querySelector(".score-label").textContent = t("score_total");
-  document.getElementById("scoreSummary").textContent = t("score_summary");
-  const legendDots = ["score-dot-pos", "score-dot-neg", "score-dot-penalty"];
-  const legendTexts = [t("score_legendBefore"), t("score_legendAfter"), t("score_legendLate")];
-  const legendItems = document.querySelectorAll(".score-legend-item");
-  legendItems.forEach((item, i) => {
-    if (legendTexts[i]) item.innerHTML = `<span class="score-dot ${legendDots[i]}"></span> ${legendTexts[i]}`;
-  });
+  // Points summary
+  document.querySelectorAll("#dashPtsEarnedLabel, #storePtsEarnedLabel").forEach(el => { el.textContent = t("pts_earned"); });
+  document.querySelectorAll("#dashPtsSpentLabel, #storePtsSpentLabel").forEach(el => { el.textContent = t("pts_spent"); });
+  document.querySelectorAll("#dashPtsAvailLabel, #storePtsAvailLabel").forEach(el => { el.textContent = t("pts_available"); });
   // Settings — Language
   document.getElementById("settingsLangTitle").textContent = t("settings_language");
   document.getElementById("settingsLangHint").textContent = t("settings_langHint");
@@ -2550,12 +2502,10 @@ function refreshAll() {
   if (document.getElementById("panel-inventory").classList.contains("active")) {
     renderInventory();
   }
-  if (document.getElementById("panel-scoreboard").classList.contains("active")) {
-    renderScoreboard();
-  }
   if (document.getElementById("panel-store").classList.contains("active")) {
     renderStore();
   }
+  renderPointsSummary();
   if (document.getElementById("panel-life").classList.contains("active")) {
     renderLife();
   } else {
@@ -2945,16 +2895,7 @@ function renderStore() {
   const grid = document.getElementById("storeGrid");
   grid.innerHTML = "";
 
-  const total = calcTotalPoints();
-  const available = total - storeSpent;
-  document.getElementById("storeAvailPts").textContent = available;
-  document.getElementById("storeAvailPts").className = "store-hero-num" + (available < 0 ? " negative" : "");
-
-  // Spent bar
-  const spentBar = document.getElementById("storeSpentBar");
-  spentBar.innerHTML = `
-    <span>${t("store_spentTotal")} <strong>${storeSpent} ${t("store_ptsUsed")}</strong></span>
-  `;
+  renderPointsSummary();
 
   // Filter chips
   const filtersEl = document.getElementById("storeFilters");
@@ -2989,19 +2930,28 @@ function renderStore() {
     const card = document.createElement("div");
     card.className = "store-card";
 
-    // Image
+    // Image area with qty badge
+    const imgArea = document.createElement("div");
+    imgArea.className = "store-card-img-area";
     if (item.image) {
       const img = document.createElement("img");
       img.className = "store-card-img";
       img.src = item.image;
       img.alt = item.name;
-      card.appendChild(img);
+      imgArea.appendChild(img);
     } else {
       const noImg = document.createElement("div");
       noImg.className = "store-card-noimg";
       noImg.textContent = "\u{1F4E6}";
-      card.appendChild(noImg);
+      imgArea.appendChild(noImg);
     }
+    if (item.quantity > 1) {
+      const badge = document.createElement("span");
+      badge.className = "store-card-qty-badge";
+      badge.textContent = "x" + item.quantity;
+      imgArea.appendChild(badge);
+    }
+    card.appendChild(imgArea);
 
     // Body
     const body = document.createElement("div");
@@ -3028,11 +2978,6 @@ function renderStore() {
     price.className = "store-card-price";
     price.textContent = item.price + " pts";
     body.appendChild(price);
-
-    const qty = document.createElement("div");
-    qty.className = "store-card-qty";
-    qty.textContent = t("store_qtyLeft")(item.quantity);
-    body.appendChild(qty);
 
     const redeemArea = document.createElement("div");
     redeemArea.className = "store-card-redeem";
@@ -3229,7 +3174,7 @@ function redeemConfirmWithQty() {
 
   closeRedeemModal();
   renderStore();
-  renderScoreboard();
+  renderPointsSummary();
   showToast(t("store_redeemed") + (qty > 1 ? ` x${qty}` : ""));
 }
 
@@ -3499,7 +3444,7 @@ function useItem(redeemedItem, cardEl) {
   // Short delay then re-render
   setTimeout(() => {
     renderLife();
-    renderScoreboard();
+    renderPointsSummary();
   }, 1200);
 }
 

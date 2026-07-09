@@ -61,7 +61,6 @@
     <nav class="tabs" role="tablist">
       <button class="tab-btn active" data-tab="dashboard" role="tab">Dashboard</button>
       <button class="tab-btn" data-tab="calendar" role="tab">Calendar</button>
-      <button class="tab-btn" data-tab="scoreboard" role="tab">Scoreboard</button>
       <button class="tab-btn" data-tab="store" role="tab">Store</button>
       <button class="tab-btn" data-tab="life" role="tab">Life</button>
       <button class="tab-btn" data-tab="settings" role="tab">Settings</button>
@@ -99,6 +98,22 @@
         <span class="dash-mini-level" id="dashMiniLevel">Lv. 1</span>
       </div>
       <div class="dash-mini-bars" id="dashMiniBars"></div>
+    </div>
+    <div class="points-summary" id="dashPointsSummary">
+      <div class="points-summary-row">
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="dashPtsEarnedLabel">Earned</span>
+          <span class="points-summary-val points-val-earned" id="dashPtsEarned">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="dashPtsSpentLabel">Spent</span>
+          <span class="points-summary-val points-val-spent" id="dashPtsSpent">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="dashPtsAvailLabel">Available</span>
+          <span class="points-summary-val points-val-avail" id="dashPtsAvail">0</span>
+        </div>
+      </div>
     </div>
     <div class="dash-two-col">
       <div class="dash-main">
@@ -305,28 +320,6 @@
   </main>
 
   <!-- Scoreboard -->
-  <main class="tab-panel" id="panel-scoreboard">
-    <div class="panel-head">
-      <div>
-        <h2>Scoreboard</h2>
-        <p class="subtle" id="scoreSummary">Points are earned by completing tasks.</p>
-      </div>
-    </div>
-    <div class="score-hero">
-      <div class="score-total" id="scoreTotal">0</div>
-      <div class="score-label">Total Points</div>
-    </div>
-    <div class="score-slider-wrap">
-      <input type="range" id="scoreSlider" class="score-slider" min="0" max="100" value="0" disabled>
-    </div>
-    <div class="score-breakdown" id="scoreBreakdown"></div>
-    <div class="score-legend">
-      <div class="score-legend-item"><span class="score-dot score-dot-pos"></span> Completed before deadline: +5</div>
-      <div class="score-legend-item"><span class="score-dot score-dot-neg"></span> Completed after deadline: +2</div>
-      <div class="score-legend-item"><span class="score-dot score-dot-penalty"></span> Deadline passed 1+ week: -4</div>
-    </div>
-  </main>
-
   <!-- Store -->
   <main class="tab-panel" id="panel-store">
     <div class="panel-head">
@@ -334,12 +327,23 @@
         <h2 id="storeTitle">Store</h2>
         <p class="subtle" id="storeSummary">Redeem your points for items.</p>
       </div>
-      <div class="store-hero-pts">
-        <span class="store-hero-label" id="storeAvailLabel">Available points</span>
-        <span class="store-hero-num" id="storeAvailPts">0</span>
+    </div>
+    <div class="points-summary" id="storePointsSummary">
+      <div class="points-summary-row">
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsEarnedLabel">Earned</span>
+          <span class="points-summary-val points-val-earned" id="storePtsEarned">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsSpentLabel">Spent</span>
+          <span class="points-summary-val points-val-spent" id="storePtsSpent">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsAvailLabel">Available</span>
+          <span class="points-summary-val points-val-avail" id="storePtsAvail">0</span>
+        </div>
       </div>
     </div>
-    <div class="store-spent-bar" id="storeSpentBar"></div>
     <div class="filter-group" id="storeFilters"></div>
     <div class="store-grid" id="storeGrid"></div>
   </main>
@@ -351,9 +355,9 @@
         <h2 id="lifeTitle">Life</h2>
         <p class="subtle" id="lifeSummary">Your acquired items from the store.</p>
       </div>
-      <div class="store-hero-pts">
-        <span class="store-hero-label" id="lifeTotalLabel">Total items redeemed</span>
-        <span class="store-hero-num" id="lifeTotalItems">0</span>
+      <div class="life-hero-pts">
+        <span class="life-hero-label" id="lifeTotalLabel">Total items redeemed</span>
+        <span class="life-hero-num" id="lifeTotalItems">0</span>
       </div>
     </div>
     <div class="rpg-stats-panel" id="lifeStatsSection">
