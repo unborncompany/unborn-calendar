@@ -1328,46 +1328,13 @@ function renderDayEntries(container, dayISO, emptyMsg) {
   });
 }
 
-function renderDashboardMiniStats() {
-  const stats = ["health", "energy", "hunger", "thirst"];
-  const labels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
-  const icons = { health: "\u2764", energy: "\u26A1", hunger: "\uD83C\uDF56", thirst: "\uD83D\uDCA7" };
-  const colors = { health: "#ef4444", energy: "#eab308", hunger: "#f97316", thirst: "#3b82f6" };
-
-  const level = calcLevel();
-  document.getElementById("dashMiniLevel").textContent = `Lv. ${level}`;
-
-  const container = document.getElementById("dashMiniBars");
-  container.innerHTML = "";
-
-  stats.forEach(stat => {
-    const val = Math.round(lifeStats[stat]);
-    const div = document.createElement("div");
-    div.className = "dash-mini-stat";
-    div.innerHTML = `
-      <div class="dash-mini-stat-head">
-        <span class="dash-mini-stat-icon">${icons[stat]}</span>
-        <span class="dash-mini-stat-val">${val}</span>
-      </div>
-      <div class="dash-mini-bar">
-        <div class="dash-mini-bar-fill" style="width:${val}%;background:linear-gradient(90deg,${colors[stat]},${colors[stat]}dd)"></div>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
 function renderPointsSummary() {
   const total = calcTotalPoints();
   const available = total - storeSpent;
-  const dashEarned = document.getElementById("dashPtsEarned");
-  const dashSpent = document.getElementById("dashPtsSpent");
   const dashAvail = document.getElementById("dashPtsAvail");
   const storeEarned = document.getElementById("storePtsEarned");
   const storeSpentEl = document.getElementById("storePtsSpent");
   const storeAvail = document.getElementById("storePtsAvail");
-  if (dashEarned) dashEarned.textContent = total;
-  if (dashSpent) dashSpent.textContent = storeSpent;
   if (dashAvail) {
     dashAvail.textContent = available;
     dashAvail.className = "points-summary-val points-val-avail" + (available < 0 ? " negative" : "");
@@ -1379,8 +1346,6 @@ function renderPointsSummary() {
     storeAvail.className = "points-summary-val points-val-avail" + (available < 0 ? " negative" : "");
   }
   // Labels
-  document.querySelectorAll("#dashPtsEarnedLabel, #storePtsEarnedLabel").forEach(el => { el.textContent = t("pts_earned"); });
-  document.querySelectorAll("#dashPtsSpentLabel, #storePtsSpentLabel").forEach(el => { el.textContent = t("pts_spent"); });
   document.querySelectorAll("#dashPtsAvailLabel, #storePtsAvailLabel").forEach(el => { el.textContent = t("pts_available"); });
 }
 
@@ -1414,12 +1379,6 @@ function renderDashboard() {
   const ptsEl = document.getElementById("dashExpectedPts");
   ptsEl.textContent = expectedPts > 0 ? t("dash_ptsAvailable")(expectedPts) : "";
 
-  // Scoreboard total
-  const scoreTotal = calcTotalPoints();
-  const scoreEl = document.getElementById("dashScoreTotal");
-  scoreEl.textContent = t("dash_ptsEarned")(scoreTotal);
-  scoreEl.className = "subtle" + (scoreTotal < 0 ? " pts-negative" : "");
-
   // Mini week calendar
   const weekCal = document.getElementById("dashWeekCal");
   weekCal.innerHTML = "";
@@ -1451,8 +1410,6 @@ function renderDashboard() {
   renderDayEntries(document.getElementById("dashTodayList"), today, t("dash_nothingToday"));
   renderDayEntries(document.getElementById("dashTomorrowList"), tomorrow, t("dash_nothingTomorrow"));
 
-  renderDashboardMiniStats();
-  renderPointsSummary();
   renderSecTasks();
 }
 
@@ -2241,6 +2198,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+    if (btn.dataset.tab === "dashboard") renderDashboard();
     if (btn.dataset.tab === "calendar") applyCalView();
     if (btn.dataset.tab === "inventory") renderInventory();
     if (btn.dataset.tab === "store") renderStore();
@@ -2269,7 +2227,6 @@ function applyTranslations() {
   t("cal_weekdays").forEach((w, i) => { if (weekdays[i]) weekdays[i].textContent = w; });
   // Dashboard
   document.querySelector("#panel-dashboard .dash-secondary-head h2").textContent = t("dash_secondary");
-  document.getElementById("dashMiniStatsTitle").textContent = t("dash_miniStats");
   // Inventory
   document.querySelector("#panel-inventory .panel-head h2").textContent = t("inv_title");
   document.getElementById("invAddBtn").textContent = t("inv_addItem");
@@ -2280,8 +2237,8 @@ function applyTranslations() {
   document.querySelector(".inv-table-head .inv-col-qty").textContent = t("inv_colQty");
   document.querySelector(".inv-table-head .inv-col-cat").textContent = t("inv_colCat");
   // Points summary
-  document.querySelectorAll("#dashPtsEarnedLabel, #storePtsEarnedLabel").forEach(el => { el.textContent = t("pts_earned"); });
-  document.querySelectorAll("#dashPtsSpentLabel, #storePtsSpentLabel").forEach(el => { el.textContent = t("pts_spent"); });
+  document.querySelectorAll("#storePtsEarnedLabel").forEach(el => { el.textContent = t("pts_earned"); });
+  document.querySelectorAll("#storePtsSpentLabel").forEach(el => { el.textContent = t("pts_spent"); });
   document.querySelectorAll("#dashPtsAvailLabel, #storePtsAvailLabel").forEach(el => { el.textContent = t("pts_available"); });
   // Settings — Language
   document.getElementById("settingsLangTitle").textContent = t("settings_language");

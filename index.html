@@ -59,10 +59,9 @@
       <h1>Game of Life</h1>
     </div>
     <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="dashboard" role="tab">Dashboard</button>
+      <button class="tab-btn active" data-tab="life" role="tab">Life</button>
       <button class="tab-btn" data-tab="calendar" role="tab">Calendar</button>
       <button class="tab-btn" data-tab="store" role="tab">Store</button>
-      <button class="tab-btn" data-tab="life" role="tab">Life</button>
       <button class="tab-btn" data-tab="settings" role="tab">Settings</button>
     </nav>
     <button class="btn btn-primary" id="quickAddBtn">+ New entry</button>
@@ -83,76 +82,6 @@
       <span class="sync-label">Synced</span>
     </div>
   </header>
-
-  <!-- Dashboard -->
-  <main class="tab-panel active" id="panel-dashboard">
-    <div class="dash-greeting">
-      <h2 id="dashGreeting"></h2>
-      <p class="subtle" id="dashTaskMsg"></p>
-      <p class="subtle" id="dashExpectedPts"></p>
-      <p class="subtle" id="dashScoreTotal"></p>
-    </div>
-    <div class="dash-mini-stats" id="dashMiniStats">
-      <div class="dash-mini-stats-head">
-        <span class="dash-mini-stats-title" id="dashMiniStatsTitle">Status</span>
-        <span class="dash-mini-level" id="dashMiniLevel">Lv. 1</span>
-      </div>
-      <div class="dash-mini-bars" id="dashMiniBars"></div>
-    </div>
-    <div class="points-summary" id="dashPointsSummary">
-      <div class="points-summary-row">
-        <div class="points-summary-item">
-          <span class="points-summary-label" id="dashPtsEarnedLabel">Earned</span>
-          <span class="points-summary-val points-val-earned" id="dashPtsEarned">0</span>
-        </div>
-        <div class="points-summary-item">
-          <span class="points-summary-label" id="dashPtsSpentLabel">Spent</span>
-          <span class="points-summary-val points-val-spent" id="dashPtsSpent">0</span>
-        </div>
-        <div class="points-summary-item">
-          <span class="points-summary-label" id="dashPtsAvailLabel">Available</span>
-          <span class="points-summary-val points-val-avail" id="dashPtsAvail">0</span>
-        </div>
-      </div>
-    </div>
-    <div class="dash-two-col">
-      <div class="dash-main">
-        <div class="dash-week-cal" id="dashWeekCal"></div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
-          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
-          <div id="dashTodayList" class="dashboard-list"></div>
-        </div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
-          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
-          <div id="dashTomorrowList" class="dashboard-list"></div>
-        </div>
-      </div>
-      <div class="dash-side">
-        <div class="panel-head dash-secondary-head">
-          <div>
-            <h2>Secondary Tasks</h2>
-            <p class="subtle" id="secSummary">No tasks yet.</p>
-          </div>
-          <button class="btn btn-primary btn-small" id="secAddBtn">+ Add</button>
-        </div>
-        <div class="dash-sec-today" id="secTodaySection" style="display:none">
-          <div class="dash-sec-label">Today</div>
-          <div id="secTodayList" class="sec-task-list"></div>
-        </div>
-        <div class="dash-sec-tomorrow">
-          <div class="dash-sec-label">Tomorrow</div>
-          <div id="secTaskList" class="sec-task-list"></div>
-        </div>
-        <div class="sec-input-area" id="secInputArea" style="display:none">
-          <input type="text" id="secTaskInput" placeholder="e.g. Water plants" maxlength="100">
-          <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
-          <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </main>
 
   <!-- Calendar -->
   <main class="tab-panel" id="panel-calendar">
@@ -349,7 +278,7 @@
   </main>
 
   <!-- Life -->
-  <main class="tab-panel" id="panel-life">
+  <main class="tab-panel active" id="panel-life">
     <div class="panel-head">
       <div>
         <h2 id="lifeTitle">Life</h2>
@@ -416,6 +345,50 @@
     </div>
     <div class="filter-group" id="lifeFilters"></div>
     <div class="life-grid" id="lifeGrid"></div>
+
+    <!-- Tasks (from dashboard) -->
+    <div class="dash-greeting" style="margin-top:24px">
+      <h2 id="dashGreeting"></h2>
+      <p class="subtle" id="dashTaskMsg"></p>
+      <p class="subtle" id="dashExpectedPts"></p>
+    </div>
+    <div class="dash-two-col">
+      <div class="dash-main">
+        <div class="dash-week-cal" id="dashWeekCal"></div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
+          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
+          <div id="dashTodayList" class="dashboard-list"></div>
+        </div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
+          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
+          <div id="dashTomorrowList" class="dashboard-list"></div>
+        </div>
+      </div>
+      <div class="dash-side">
+        <div class="panel-head dash-secondary-head">
+          <div>
+            <h2>Secondary Tasks</h2>
+            <p class="subtle" id="secSummary">No tasks yet.</p>
+          </div>
+          <button class="btn btn-primary btn-small" id="secAddBtn">+ Add</button>
+        </div>
+        <div class="dash-sec-today" id="secTodaySection" style="display:none">
+          <div class="dash-sec-label">Today</div>
+          <div id="secTodayList" class="sec-task-list"></div>
+        </div>
+        <div class="dash-sec-tomorrow">
+          <div class="dash-sec-label">Tomorrow</div>
+          <div id="secTaskList" class="sec-task-list"></div>
+        </div>
+        <div class="sec-input-area" id="secInputArea" style="display:none">
+          <input type="text" id="secTaskInput" placeholder="e.g. Water plants" maxlength="100">
+          <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
+          <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
   </main>
 
 </div>

@@ -1326,7 +1326,6 @@ body {
   line-height: 1.2;
 }
 .dash-greeting .subtle { margin: 3px 0; font-size: 15px; }
-.dash-greeting .pts-negative { color: var(--danger); }
 .dash-greeting .dash-expected-pts {
   margin-top: 10px;
   font-family: var(--font-mono);
@@ -2397,21 +2396,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   border: 1px solid rgba(233, 69, 96, 0.3);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px;
   margin-bottom: 16px;
   box-shadow: 0 2px 12px rgba(233, 69, 96, 0.1);
+  color: #fff;
 }
 
 .dash-mini-stats-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .dash-mini-stats-title {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #f9a825;
   display: flex;
@@ -2421,60 +2421,125 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 
 .dash-mini-stats-title::before {
   content: "\2605";
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.dash-mini-level {
+.dash-mini-level-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-mini-level-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: #f9a825;
+  white-space: nowrap;
+  min-width: 42px;
+}
+
+.dash-mini-level-bar {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dash-mini-level-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f9a825, #f97316);
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.dash-mini-level-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
+  border-radius: 5px 5px 0 0;
+}
+
+.dash-mini-level-pts {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(249, 168, 37, 0.15);
-  padding: 2px 8px;
-  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
 }
 
 .dash-mini-bars {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .dash-mini-stat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .dash-mini-stat-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 4px;
 }
 
 .dash-mini-stat-icon {
-  font-size: 12px;
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.dash-mini-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dash-mini-stat-val {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
+  min-width: 22px;
+  text-align: right;
 }
 
 .dash-mini-bar {
-  height: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 3px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dash-mini-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.5s ease;
   position: relative;
+  min-width: 2px;
 }
 
 .dash-mini-bar-fill::after {
@@ -2484,14 +2549,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
-  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent);
+  border-radius: 4px 4px 0 0;
 }
 
 @media (max-width: 720px) {
   .dash-mini-bars {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 10px;
   }
 }
 
@@ -2508,6 +2573,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   display: flex;
   justify-content: space-around;
   gap: 12px;
+}
+
+.points-summary-single .points-summary-row {
+  justify-content: center;
 }
 
 .points-summary-item {
