@@ -15,7 +15,7 @@ const STORE_SPENT_KEY = "ledger.storeSpent.v1";
 const REDEEMED_KEY = "ledger.redeemed.v1";
 const EDIT_PENALTY_KEY = "ledger.editPenalties.v1";
 const DELETE_PENALTY_KEY = "ledger.deletePenalties.v1";
-const PET_STATS_KEY = "ledger.petStats.v1";
+const LIFE_STATS_KEY = "ledger.lifeStats.v1";
 
 /* ---------- Translations ---------- */
 const I18N = {
@@ -181,11 +181,6 @@ const I18N = {
     settings_supply: "Supply Store",
     settings_cloud: "Cloud Sync",
     settings_cloudHint: "Sign in with Google to sync your data across devices. When not signed in, all data stays local.",
-    pet_statsTitle: "Pet Stats",
-    pet_statsHint: "Use items to keep your pet healthy",
-    pet_use: "Use",
-    pet_cooldown: "Cooldown",
-    pet_consumable: "Consumable",
     settings_supplyHint: "Manage inventory items available in the store. Requires admin access.",
     settings_supplyBtn: "Open inventory",
     // Store
@@ -211,6 +206,20 @@ const I18N = {
     life_empty: "No items redeemed yet.",
     life_acquired: "Acquired",
     life_date: (d) => `Redeemed ${d}`,
+    life_health: "Health",
+    life_energy: "Energy",
+    life_hunger: "Hunger",
+    life_thirst: "Thirst",
+    life_level: "Level",
+    life_use: "Use",
+    life_used: "Used!",
+    life_consumeEffect: (stat, amt) => `${amt > 0 ? "+" : ""}${amt} ${stat}`,
+    dash_miniStats: "Status",
+    invModal_consumable: "Consumable",
+    invModal_statEffects: "Stat Effects",
+    invModal_addEffect: "+ Add effect",
+    invModal_stat: "Stat",
+    invModal_amount: "Amount",
     // Admin
     admin_title: "Admin Access",
     admin_user: "Username",
@@ -422,11 +431,6 @@ const I18N = {
     settings_supply: "Tienda de Suministros",
     settings_cloud: "Sincronización en la Nube",
     settings_cloudHint: "Inicia sesión con Google para sincronizar tus datos entre dispositivos. Si no inicias sesión, los datos permanecen locales.",
-    pet_statsTitle: "Estadísticas de Mascota",
-    pet_statsHint: "Usa artículos para mantener a tu mascota sana",
-    pet_use: "Usar",
-    pet_cooldown: "Enfriamiento",
-    pet_consumable: "Consumible",
     settings_supplyHint: "Gestiona los art\u00edculos disponibles en la tienda. Requiere acceso de administrador.",
     settings_supplyBtn: "Abrir inventario",
     store_title: "Tienda",
@@ -450,6 +454,20 @@ const I18N = {
     life_empty: "Sin art\u00edculos canjeados a\u00fan.",
     life_acquired: "Adquirido",
     life_date: (d) => `Canjeado ${d}`,
+    life_health: "Salud",
+    life_energy: "Energ\u00eda",
+    life_hunger: "Hambre",
+    life_thirst: "Sed",
+    life_level: "Nivel",
+    life_use: "Usar",
+    life_used: "\u00a1Usado!",
+    life_consumeEffect: (stat, amt) => `${amt > 0 ? "+" : ""}${amt} ${stat}`,
+    dash_miniStats: "Estado",
+    invModal_consumable: "Consumible",
+    invModal_statEffects: "Efectos de Stat",
+    invModal_addEffect: "+ Agregar efecto",
+    invModal_stat: "Stat",
+    invModal_amount: "Cantidad",
     admin_title: "Acceso de Administrador",
     admin_user: "Usuario",
     admin_pass: "Contrase\u00f1a",
@@ -526,6 +544,75 @@ let currentRedeemItem = null;
 let activeStoreFilter = "all";
 let activeLifeFilter = "all";
 
+/* ---------- Life Stats ---------- */
+function loadLifeStats() {
+  try {
+    const raw = localStorage.getItem(LIFE_STATS_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      return {
+        health: data.health ?? 95,
+        energy: data.energy ?? 80,
+        hunger: data.hunger ?? 50,
+        thirst: data.thirst ?? 70,
+        level: data.level ?? 1,
+        lastDecayAt: data.lastDecayAt || new Date().toISOString(),
+      };
+    }
+  } catch (e) {}
+  return { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString() };
+}
+
+function saveLifeStats() {
+  try { localStorage.setItem(LIFE_STATS_KEY, JSON.stringify(lifeStats)); } catch (e) {}
+  scheduleCloudSave();
+}
+
+let lifeStats = loadLifeStats();
+
+/* Decay rates per day */
+const DECAY_RATES = { energy: 5, hunger: 8, thirst: 10 };
+const HEALTH_DECAY_RATE = 5;
+const HEALTH_THRESHOLD = 20;
+const HEALTH_DECAY_DAYS = 3;
+const POINTS_PER_LEVEL = 50;
+
+function calcLevel() {
+  const totalPts = calcTotalPoints();
+  return Math.max(1, Math.floor(totalPts / POINTS_PER_LEVEL) + 1);
+}
+
+function processDecay() {
+  const now = new Date();
+  const lastDecay = new Date(lifeStats.lastDecayAt);
+  const msDiff = now - lastDecay;
+  const daysDiff = msDiff / (1000 * 60 * 60 * 24);
+
+  if (daysDiff < 0.01) return; // less than ~15 minutes, skip
+
+  // Decay Energy, Hunger, Thirst
+  for (const stat of ["energy", "hunger", "thirst"]) {
+    const decay = DECAY_RATES[stat] * daysDiff;
+    lifeStats[stat] = Math.max(0, lifeStats[stat] - decay);
+  }
+
+  // Health decay: only if both Hunger AND Thirst below threshold for 3+ days
+  if (lifeStats.hunger < HEALTH_THRESHOLD && lifeStats.thirst < HEALTH_THRESHOLD) {
+    // Check how long both have been below threshold
+    // We approximate: if daysDiff >= HEALTH_DECAY_DAYS, apply health decay
+    if (daysDiff >= HEALTH_DECAY_DAYS) {
+      const healthDecay = HEALTH_DECAY_RATE * Math.floor(daysDiff / HEALTH_DECAY_DAYS);
+      lifeStats.health = Math.max(0, lifeStats.health - healthDecay);
+    }
+  }
+
+  // Update level
+  lifeStats.level = calcLevel();
+
+  lifeStats.lastDecayAt = now.toISOString();
+  saveLifeStats();
+}
+
 function loadEditPenalties() {
   try {
     const raw = localStorage.getItem(EDIT_PENALTY_KEY);
@@ -549,93 +636,6 @@ function saveDeletePenalties() {
   scheduleCloudSave();
 }
 let deletePenalties = loadDeletePenalties();
-
-/* ---------- Pet Stats ---------- */
-const DEFAULT_PET_STATS = {
-  energy: 80,
-  hunger: 70,
-  thirst: 70,
-  health: 100,
-  lastDecay: Date.now(),
-  lowSince: null, // timestamp when hunger+thirst both went <10
-  lastUsed: {},    // { redeemedId: { count, firstUse } } for non-consumable cooldown
-};
-
-function loadPetStats() {
-  try {
-    const raw = localStorage.getItem(PET_STATS_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      // Merge with defaults in case new fields were added
-      return { ...DEFAULT_PET_STATS, ...saved, lastUsed: saved.lastUsed || {} };
-    }
-  } catch (e) {}
-  return { ...DEFAULT_PET_STATS };
-}
-function savePetStats() {
-  try { localStorage.setItem(PET_STATS_KEY, JSON.stringify(petStats)); } catch (e) {}
-  scheduleCloudSave();
-}
-let petStats = loadPetStats();
-
-/* ---------- Pet Stats Decay ---------- */
-// Decay rates: points lost per hour
-const DECAY_RATES = {
-  energy: 1.5,   // ~36/day
-  hunger: 1.2,   // ~28.8/day
-  thirst: 1.8,   // ~43.2/day
-};
-const HEALTH_DECAY_THRESHOLD = 10;  // health decays when hunger AND thirst < this %
-const HEALTH_DECAY_DAYS = 3;        // must be low for this many days
-const HEALTH_DECAY_RATE = 0.8;      // health points lost per day when conditions met
-const STAT_MIN = 0;
-const STAT_MAX = 100;
-
-function clampStat(v) { return Math.max(STAT_MIN, Math.min(STAT_MAX, v)); }
-
-function processPetDecay() {
-  const now = Date.now();
-  const elapsed = now - petStats.lastDecay;
-  if (elapsed <= 0) return;
-
-  const hoursElapsed = elapsed / (1000 * 60 * 60);
-
-  // Continuous decay for energy, hunger, thirst
-  petStats.energy = clampStat(petStats.energy - DECAY_RATES.energy * hoursElapsed);
-  petStats.hunger = clampStat(petStats.hunger - DECAY_RATES.hunger * hoursElapsed);
-  petStats.thirst = clampStat(petStats.thirst - DECAY_RATES.thirst * hoursElapsed);
-
-  // Health decay: only when hunger AND thirst both < threshold for 3+ days
-  if (petStats.hunger < HEALTH_DECAY_THRESHOLD && petStats.thirst < HEALTH_DECAY_THRESHOLD) {
-    if (!petStats.lowSince) {
-      petStats.lowSince = now;
-    } else {
-      const daysLow = (now - petStats.lowSince) / (1000 * 60 * 60 * 24);
-      if (daysLow >= HEALTH_DECAY_DAYS) {
-        const healthDecay = HEALTH_DECAY_RATE * (hoursElapsed / 24);
-        petStats.health = clampStat(petStats.health - healthDecay);
-      }
-    }
-  } else {
-    // Reset low timer when either stat goes above threshold
-    petStats.lowSince = null;
-  }
-
-  // Clean up expired cooldowns for non-consumable items (>24h old)
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-  for (const rid in petStats.lastUsed) {
-    if (now - petStats.lastUsed[rid].firstUse > COOLDOWN_MS) {
-      delete petStats.lastUsed[rid];
-    }
-  }
-
-  petStats.lastDecay = now;
-  savePetStats();
-}
-
-// Process decay on load and every 60 seconds
-processPetDecay();
-setInterval(() => { processPetDecay(); renderPetStats(); }, 60000);
 
 /* ---------- Firebase / Cloud Sync ---------- */
 let firebaseReady = false;
@@ -735,11 +735,11 @@ function getCloudData() {
     redeemed: redeemed,
     editPenalties: editPenalties,
     deletePenalties: deletePenalties,
-    petStats: petStats,
     firedAlarms: firedAlarms,
     notifSound: notifSoundData,
     adminUser: adminUser,
     adminPass: adminPass,
+    lifeStats: lifeStats,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -783,11 +783,11 @@ async function loadFromCloud() {
       if (data.redeemed) redeemed = data.redeemed;
       if (data.editPenalties) editPenalties = data.editPenalties;
       if (data.deletePenalties) deletePenalties = data.deletePenalties;
-      if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; }
       if (data.firedAlarms) firedAlarms = data.firedAlarms;
       if (data.notifSound) notifSoundData = data.notifSound;
       if (data.adminUser) adminUser = data.adminUser;
       if (data.adminPass) adminPass = data.adminPass;
+      if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
       // Save everything to localStorage as cache
       saveEntries();
       saveInventory();
@@ -802,6 +802,9 @@ async function loadFromCloud() {
       try { localStorage.setItem(CAL_VIEW_KEY, calView); } catch (e) {}
       try { localStorage.setItem(STORE_SPENT_KEY, storeSpent.toString()); } catch (e) {}
       try { localStorage.setItem("ledger.firedAlarms.v1", JSON.stringify(firedAlarms)); } catch (e) {}
+      if (data.lifeStats) {
+        try { localStorage.setItem(LIFE_STATS_KEY, JSON.stringify(lifeStats)); } catch (e) {}
+      }
       if (notifSoundData) {
         try { localStorage.setItem(NOTIF_SOUND_KEY, notifSoundData); } catch (e) {}
       }
@@ -842,9 +845,9 @@ function subscribeToCloud() {
     if (data.redeemed) redeemed = data.redeemed;
     if (data.editPenalties) editPenalties = data.editPenalties;
     if (data.deletePenalties) deletePenalties = data.deletePenalties;
-    if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; }
     if (data.firedAlarms) firedAlarms = data.firedAlarms;
     if (data.notifSound) notifSoundData = data.notifSound;
+    if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
     // Update localStorage cache
     saveEntries();
     saveInventory();
@@ -1291,6 +1294,36 @@ function renderDayEntries(container, dayISO, emptyMsg) {
   });
 }
 
+function renderDashboardMiniStats() {
+  processDecay();
+  const stats = ["health", "energy", "hunger", "thirst"];
+  const labels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+  const icons = { health: "\u2764", energy: "\u26A1", hunger: "\uD83C\uDF56", thirst: "\uD83D\uDCA7" };
+  const colors = { health: "#ef4444", energy: "#eab308", hunger: "#f97316", thirst: "#3b82f6" };
+
+  const level = calcLevel();
+  document.getElementById("dashMiniLevel").textContent = `Lv. ${level}`;
+
+  const container = document.getElementById("dashMiniBars");
+  container.innerHTML = "";
+
+  stats.forEach(stat => {
+    const val = Math.round(lifeStats[stat]);
+    const div = document.createElement("div");
+    div.className = "dash-mini-stat";
+    div.innerHTML = `
+      <div class="dash-mini-stat-head">
+        <span class="dash-mini-stat-icon">${icons[stat]}</span>
+        <span class="dash-mini-stat-val">${val}</span>
+      </div>
+      <div class="dash-mini-bar">
+        <div class="dash-mini-bar-fill" style="width:${val}%;background:linear-gradient(90deg,${colors[stat]},${colors[stat]}dd)"></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
 function renderDashboard() {
   const today = todayISO();
   const tomorrow = tomorrowISO();
@@ -1358,6 +1391,7 @@ function renderDashboard() {
   renderDayEntries(document.getElementById("dashTodayList"), today, t("dash_nothingToday"));
   renderDayEntries(document.getElementById("dashTomorrowList"), tomorrow, t("dash_nothingTomorrow"));
 
+  renderDashboardMiniStats();
   renderSecTasks();
 }
 
@@ -2002,6 +2036,7 @@ function gatherSaveData() {
     deletePenalties: deletePenalties,
     notifSound: notifSoundData,
     firedAlarms: firedAlarms,
+    lifeStats: lifeStats,
   };
 }
 
@@ -2018,9 +2053,9 @@ function applySaveData(data) {
   if (data.redeemed) { redeemed = data.redeemed; saveRedeemed(); }
   if (data.editPenalties) { editPenalties = data.editPenalties; saveEditPenalties(); }
   if (data.deletePenalties) { deletePenalties = data.deletePenalties; saveDeletePenalties(); }
-  if (data.petStats) { petStats = { ...DEFAULT_PET_STATS, ...data.petStats, lastUsed: (data.petStats.lastUsed || {}) }; savePetStats(); }
   if (data.notifSound) notifSoundData = data.notifSound;
   if (data.firedAlarms) firedAlarms = data.firedAlarms;
+  if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
   saveEntries();
   saveInventory();
   saveSecTasks();
@@ -2032,10 +2067,6 @@ function applySaveData(data) {
   try { localStorage.setItem("ledger.firedAlarms.v1", JSON.stringify(firedAlarms)); } catch (e) {}
   loadNotifSound();
   refreshAll();
-  // If user is signed in, push imported data to cloud so it syncs across devices
-  if (firebaseReady && currentUser) {
-    saveToCloud();
-  }
 }
 
 // Export — download JSON
@@ -2248,6 +2279,7 @@ function applyTranslations() {
   t("cal_weekdays").forEach((w, i) => { if (weekdays[i]) weekdays[i].textContent = w; });
   // Dashboard
   document.querySelector("#panel-dashboard .dash-secondary-head h2").textContent = t("dash_secondary");
+  document.getElementById("dashMiniStatsTitle").textContent = t("dash_miniStats");
   // Inventory
   document.querySelector("#panel-inventory .panel-head h2").textContent = t("inv_title");
   document.getElementById("invAddBtn").textContent = t("inv_addItem");
@@ -2302,6 +2334,10 @@ function applyTranslations() {
   document.getElementById("lifeTitle").textContent = t("life_title");
   document.getElementById("lifeSummary").textContent = t("life_summary");
   document.getElementById("lifeTotalLabel").textContent = t("life_totalLabel");
+  document.getElementById("lifeStatHealthLabel").textContent = t("life_health");
+  document.getElementById("lifeStatEnergyLabel").textContent = t("life_energy");
+  document.getElementById("lifeStatHungerLabel").textContent = t("life_hunger");
+  document.getElementById("lifeStatThirstLabel").textContent = t("life_thirst");
   // Admin modal
   document.getElementById("adminModalTitle").textContent = t("admin_title");
   document.getElementById("adminLabelUser").textContent = t("admin_user");
@@ -2365,6 +2401,9 @@ function applyTranslations() {
   document.getElementById("invLabelCat").textContent = t("invModal_cat");
   document.getElementById("invLabelAcc").innerHTML = t("invModal_acc") + " <em>" + t("invModal_descOptional") + "</em>";
   document.getElementById("invAddAccRow").textContent = t("invModal_addAcc");
+  document.getElementById("invLabelConsumable").textContent = t("invModal_consumable");
+  document.getElementById("invLabelStatEffects").innerHTML = t("invModal_statEffects") + " <em>" + t("invModal_descOptional") + "</em>";
+  document.getElementById("invAddStatEffectRow").textContent = t("invModal_addEffect");
   document.getElementById("invCancelBtn").textContent = t("invModal_cancel");
   document.querySelector('#invForm button[type="submit"]').textContent = t("invModal_save");
   document.getElementById("invDeleteBtn").textContent = t("invModal_delete");
@@ -2435,10 +2474,10 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   localStorage.removeItem(REDEEMED_KEY);
   localStorage.removeItem(EDIT_PENALTY_KEY);
   localStorage.removeItem(DELETE_PENALTY_KEY);
-  localStorage.removeItem(PET_STATS_KEY);
   localStorage.removeItem(NOTIF_SOUND_KEY);
   localStorage.removeItem("ledger.firedAlarms.v1");
   localStorage.removeItem(LANG_KEY);
+  localStorage.removeItem(LIFE_STATS_KEY);
   entries = [];
   inventory = [];
   secTasks = [];
@@ -2453,7 +2492,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   redeemed = [];
   editPenalties = [];
   deletePenalties = [];
-  petStats = { ...DEFAULT_PET_STATS };
+  lifeStats = { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString() };
   document.getElementById("langSelect").value = lang;
   document.getElementById("themeSelect").value = theme;
   document.getElementById("calViewSelect").value = calView;
@@ -2487,8 +2526,9 @@ function refreshAll() {
   }
   if (document.getElementById("panel-life").classList.contains("active")) {
     renderLife();
+  } else {
+    renderLifeStats();
   }
-  renderPetStats();
 }
 
 /* ============ Inventory ============ */
@@ -2639,6 +2679,32 @@ function renderInventory() {
         wrap.appendChild(sec);
       }
 
+      // Consumable & stat effects display
+      if (item.consumable) {
+        const consSec = document.createElement("div");
+        consSec.className = "inv-acc-section";
+        const consLabel = document.createElement("div");
+        consLabel.className = "inv-acc-label";
+        consLabel.textContent = t("invModal_consumable");
+        consSec.appendChild(consLabel);
+        if (item.statEffects && item.statEffects.length > 0) {
+          const effList = document.createElement("div");
+          effList.className = "inv-acc-list";
+          const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+          item.statEffects.forEach(eff => {
+            const effItem = document.createElement("div");
+            effItem.className = "inv-acc-item";
+            effItem.innerHTML = `
+              <span class="inv-acc-item-name">${statLabels[eff.stat] || eff.stat}</span>
+              <span class="inv-acc-item-price" style="color:${eff.amount > 0 ? "var(--sage)" : "var(--danger)"}">${eff.amount > 0 ? "+" : ""}${eff.amount}</span>
+            `;
+            effList.appendChild(effItem);
+          });
+          consSec.appendChild(effList);
+        }
+        wrap.appendChild(consSec);
+      }
+
       // Edit button in expanded view
       const editRow = document.createElement("div");
       editRow.style.cssText = "padding:8px 16px 12px;display:flex;gap:8px;";
@@ -2681,6 +2747,32 @@ function addAccRow(name, qty, price, pts) {
   list.appendChild(row);
 }
 
+// Stat effect row helper
+function addStatEffectRow(stat, amount) {
+  const list = document.getElementById("invStatEffectsList");
+  const row = document.createElement("div");
+  row.className = "todo-input-row stat-effect-row";
+  const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+  row.innerHTML = `
+    <select class="stat-effect-stat-input">
+      <option value="health"${stat === "health" ? " selected" : ""}>${statLabels.health}</option>
+      <option value="energy"${stat === "energy" ? " selected" : ""}>${statLabels.energy}</option>
+      <option value="hunger"${stat === "hunger" ? " selected" : ""}>${statLabels.hunger}</option>
+      <option value="thirst"${stat === "thirst" ? " selected" : ""}>${statLabels.thirst}</option>
+    </select>
+    <input type="number" class="stat-effect-amount-input" value="${amount || 10}" placeholder="${t("invModal_amount")}">
+    <button type="button" class="todo-remove-btn" title="${t("inv_remove")}">&times;</button>
+  `;
+  row.querySelector(".todo-remove-btn").addEventListener("click", () => {
+    if (list.children.length > 1) row.remove();
+    else {
+      row.querySelector(".stat-effect-stat-input").value = "health";
+      row.querySelector(".stat-effect-amount-input").value = 10;
+    }
+  });
+  list.appendChild(row);
+}
+
 // Inventory modal
 const invModalOverlay = document.getElementById("invModalOverlay");
 const invForm = document.getElementById("invForm");
@@ -2688,11 +2780,13 @@ const invForm = document.getElementById("invForm");
 function openInvModal(itemId) {
   invForm.reset();
   document.getElementById("invAccList").innerHTML = "";
+  document.getElementById("invStatEffectsList").innerHTML = "";
   const deleteBtn = document.getElementById("invDeleteBtn");
   invImageData = null;
   document.getElementById("invImagePreview").style.display = "none";
   document.getElementById("invImageRemove").style.display = "none";
   document.getElementById("invImageName").textContent = t("invImageNoFile");
+  document.getElementById("invItemConsumable").checked = false;
 
   if (itemId) {
     const item = inventory.find(i => i.id === itemId);
@@ -2703,9 +2797,6 @@ function openInvModal(itemId) {
     document.getElementById("invItemPrice").value = item.price || 0;
     document.getElementById("invItemQty").value = item.quantity;
     document.getElementById("invItemCat").value = item.category;
-    document.getElementById("invItemEffectStat").value = item.effectStat || "";
-    document.getElementById("invItemEffectAmount").value = item.effectAmount || 0;
-    document.getElementById("invItemConsumable").checked = !!item.consumable;
     deleteBtn.style.display = "inline-block";
     if (item.image) {
       invImageData = item.image;
@@ -2717,6 +2808,13 @@ function openInvModal(itemId) {
     if (item.accessories) {
       item.accessories.forEach(acc => addAccRow(acc.name, acc.quantity, acc.price, acc.pts));
     }
+    // Consumable and stat effects
+    document.getElementById("invItemConsumable").checked = !!item.consumable;
+    if (item.statEffects && item.statEffects.length > 0) {
+      item.statEffects.forEach(e => addStatEffectRow(e.stat, e.amount));
+    } else {
+      addStatEffectRow("health", 10);
+    }
   } else {
     document.getElementById("invModalTitle").textContent = t("invModal_add");
     document.getElementById("invItemId").value = "";
@@ -2725,6 +2823,7 @@ function openInvModal(itemId) {
     document.getElementById("invItemCat").value = INV_CATEGORIES[0];
     deleteBtn.style.display = "none";
     addAccRow("");
+    addStatEffectRow("health", 10);
   }
 
   invModalOverlay.classList.add("open");
@@ -2741,6 +2840,7 @@ document.getElementById("invCancelBtn").addEventListener("click", closeInvModal)
 invModalOverlay.addEventListener("click", (e) => { if (e.target === invModalOverlay) closeInvModal(); });
 
 document.getElementById("invAddAccRow").addEventListener("click", () => addAccRow(""));
+document.getElementById("invAddStatEffectRow").addEventListener("click", () => addStatEffectRow("health", 10));
 
 document.getElementById("invDeleteBtn").addEventListener("click", () => {
   const id = document.getElementById("invItemId").value;
@@ -2763,9 +2863,6 @@ invForm.addEventListener("submit", (e) => {
   const price = parseFloat(document.getElementById("invItemPrice").value) || 0;
   const quantity = parseInt(document.getElementById("invItemQty").value, 10);
   const category = document.getElementById("invItemCat").value;
-  const effectStat = document.getElementById("invItemEffectStat").value || "";
-  const effectAmount = parseInt(document.getElementById("invItemEffectAmount").value, 10) || 0;
-  const consumable = document.getElementById("invItemConsumable").checked;
 
   if (!name || isNaN(quantity)) return;
 
@@ -2779,6 +2876,16 @@ invForm.addEventListener("submit", (e) => {
     if (accName) accessories.push({ id: uid(), name: accName, quantity: accQty, price: accPrice, pts: accPts });
   });
 
+  // Consumable and stat effects
+  const consumable = document.getElementById("invItemConsumable").checked;
+  const statEffectRows = document.querySelectorAll("#invStatEffectsList .stat-effect-row");
+  const statEffects = [];
+  statEffectRows.forEach(row => {
+    const stat = row.querySelector(".stat-effect-stat-input").value;
+    const amount = parseInt(row.querySelector(".stat-effect-amount-input").value, 10) || 0;
+    if (stat && amount !== 0) statEffects.push({ stat, amount });
+  });
+
   if (id) {
     const item = inventory.find(i => i.id === id);
     item.name = name;
@@ -2788,12 +2895,11 @@ invForm.addEventListener("submit", (e) => {
     item.category = category;
     item.accessories = accessories;
     item.image = invImageData || null;
-    item.effectStat = effectStat;
-    item.effectAmount = effectAmount;
     item.consumable = consumable;
+    item.statEffects = statEffects;
     showToast(t("toast_itemUpdated"));
   } else {
-    inventory.push({ id: uid(), name, description, price, quantity, category, accessories, image: invImageData || null, effectStat, effectAmount, consumable });
+    inventory.push({ id: uid(), name, description, price, quantity, category, accessories, image: invImageData || null, consumable, statEffects });
     showToast(t("toast_itemAdded"));
   }
 
@@ -2918,6 +3024,7 @@ function openRedeemModal(item) {
   const canAfford = total >= item.price;
   const inStock = item.quantity > 0;
   const hasAccessories = item.accessories && item.accessories.length > 0;
+  const maxQty = Math.min(item.quantity, Math.floor(total / item.price)) || 1;
 
   let accHtml = "";
   if (hasAccessories) {
@@ -2938,34 +3045,91 @@ function openRedeemModal(item) {
     ? item.price + item.accessories.reduce((s, a) => s + (a.pts || 0), 0)
     : item.price;
 
+  const qtyHtml = `
+    <div class="redeem-qty-row">
+      <span class="redeem-qty-label">${t("invModal_qty")}</span>
+      <div class="redeem-qty-controls">
+        <button type="button" class="redeem-qty-btn" id="redeemQtyMinus">-</button>
+        <span class="redeem-qty-value" id="redeemQtyValue">1</span>
+        <button type="button" class="redeem-qty-btn" id="redeemQtyPlus">+</button>
+      </div>
+    </div>
+    <div class="redeem-qty-total">
+      <span class="redeem-qty-total-label">Total cost</span>
+      <span class="redeem-qty-total-pts" id="redeemQtyTotalPts">${totalPts} pts</span>
+    </div>
+  `;
+
   content.innerHTML = `
     <p style="margin:0 0 8px;font-size:14px">${t("store_redeemMsg")(item.name, totalPts)}</p>
     <p style="margin:0 0 4px;font-size:13px;color:var(--ink-soft)">${t("store_availPts")}: <strong>${total}</strong></p>
     <p style="margin:0;font-size:12px;color:var(--ink-soft)">${item.price} pts base${hasAccessories ? " + " + item.accessories.reduce((s, a) => s + (a.pts || 0), 0) + " accessories" : ""}</p>
     ${!canAfford ? `<p style="margin:8px 0 0;font-size:13px;color:var(--danger)">${t("store_notEnough")}</p>` : ""}
     ${!inStock ? `<p style="margin:8px 0 0;font-size:13px;color:var(--danger)">${t("store_outOfStock")}</p>` : ""}
+    ${qtyHtml}
     ${accHtml}
   `;
+
+  // Quantity logic
+  let selectedQty = 1;
+  const qtyValue = document.getElementById("redeemQtyValue");
+  const qtyMinus = document.getElementById("redeemQtyMinus");
+  const qtyPlus = document.getElementById("redeemQtyPlus");
+  const qtyTotalPts = document.getElementById("redeemQtyTotalPts");
+  const confirmBtn = document.getElementById("redeemConfirmBtn");
+
+  function updateQtyTotal() {
+    const accTotal = hasAccessories
+      ? Array.from(content.querySelectorAll(".redeem-acc-check"))
+          .filter(c => c.checked)
+          .reduce((s, c) => s + (parseInt(c.dataset.accPts) || 0), 0)
+      : 0;
+    const unitCost = item.price + accTotal;
+    const grandTotal = unitCost * selectedQty;
+    qtyValue.textContent = selectedQty;
+    qtyTotalPts.textContent = grandTotal + " pts";
+    const canNow = total >= grandTotal && selectedQty <= item.quantity;
+    qtyTotalPts.className = "redeem-qty-total-pts" + (canNow ? "" : " too-expensive");
+    confirmBtn.disabled = !canNow;
+    confirmBtn.style.opacity = canNow ? "1" : "0.5";
+  }
+
+  qtyMinus.addEventListener("click", () => {
+    if (selectedQty > 1) {
+      selectedQty--;
+      updateQtyTotal();
+    }
+  });
+
+  qtyPlus.addEventListener("click", () => {
+    const maxAffordable = Math.floor(total / (item.price + (hasAccessories ? item.accessories.reduce((s, a) => s + (a.pts || 0), 0) : 0)));
+    const maxAvailable = item.quantity;
+    const maxAllowed = Math.min(maxAffordable, maxAvailable);
+    if (selectedQty < maxAllowed) {
+      selectedQty++;
+      updateQtyTotal();
+    }
+  });
 
   // Update total when accessory checkboxes change
   if (hasAccessories) {
     content.querySelectorAll(".redeem-acc-check").forEach(cb => {
       cb.addEventListener("change", () => {
-        const accTotal = Array.from(content.querySelectorAll(".redeem-acc-check"))
-          .filter(c => c.checked)
-          .reduce((s, c) => s + (parseInt(c.dataset.accPts) || 0), 0);
-        const grandTotal = item.price + accTotal;
-        content.querySelector("p:first-child").textContent = t("store_redeemMsg")(item.name, grandTotal);
-        const canNow = total >= grandTotal;
-        confirmBtn.disabled = !canNow || !inStock;
-        confirmBtn.style.opacity = (!canNow || !inStock) ? "0.5" : "1";
+        updateQtyTotal();
       });
     });
   }
 
-  const confirmBtn = document.getElementById("redeemConfirmBtn");
   confirmBtn.disabled = !canAfford || !inStock;
   confirmBtn.style.opacity = (!canAfford || !inStock) ? "0.5" : "1";
+
+  // Store qty on the button for the confirm handler
+  confirmBtn.dataset.qty = 1;
+  const origClickHandler = confirmBtn.onclick;
+  confirmBtn.onclick = () => {
+    confirmBtn.dataset.qty = selectedQty;
+    redeemConfirmWithQty();
+  };
 
   document.getElementById("redeemModalOverlay").classList.add("open");
 }
@@ -2981,10 +3145,12 @@ document.getElementById("redeemModalOverlay").addEventListener("click", (e) => {
   if (e.target === document.getElementById("redeemModalOverlay")) closeRedeemModal();
 });
 
-document.getElementById("redeemConfirmBtn").addEventListener("click", () => {
+function redeemConfirmWithQty() {
   if (!currentRedeemItem) return;
   const item = currentRedeemItem;
   const total = calcTotalPoints();
+  const confirmBtn = document.getElementById("redeemConfirmBtn");
+  const qty = parseInt(confirmBtn.dataset.qty) || 1;
 
   // Calculate total from selected accessories
   const content = document.getElementById("redeemContent");
@@ -2999,35 +3165,42 @@ document.getElementById("redeemConfirmBtn").addEventListener("click", () => {
       }
     });
   }
-  const grandTotal = item.price + selectedAccPts;
+  const unitCost = item.price + selectedAccPts;
+  const grandTotal = unitCost * qty;
 
-  if (total < grandTotal || item.quantity <= 0) return;
+  if (total < grandTotal || item.quantity < qty) return;
 
   // Deduct points by increasing storeSpent
   storeSpent += grandTotal;
   try { localStorage.setItem(STORE_SPENT_KEY, storeSpent.toString()); } catch (e) {}
 
-  // Record redemption
-  redeemed.push({
-    itemId: item.id,
-    name: item.name,
-    image: item.image || null,
-    price: item.price,
-    category: item.category,
-    selectedAccessories: selectedAccIds,
-    totalPts: grandTotal,
-    redeemedAt: new Date().toISOString(),
-  });
+  // Record redemption for each quantity
+  for (let i = 0; i < qty; i++) {
+    redeemed.push({
+      itemId: item.id,
+      name: item.name,
+      image: item.image || null,
+      price: item.price,
+      category: item.category,
+      selectedAccessories: selectedAccIds,
+      totalPts: unitCost,
+      redeemedAt: new Date().toISOString(),
+    });
+  }
   saveRedeemed();
 
   // Reduce quantity
-  item.quantity -= 1;
+  item.quantity -= qty;
   saveInventory();
 
   closeRedeemModal();
   renderStore();
   renderScoreboard();
-  showToast(t("store_redeemed"));
+  showToast(t("store_redeemed") + (qty > 1 ? ` x${qty}` : ""));
+}
+
+document.getElementById("redeemConfirmBtn").addEventListener("click", () => {
+  redeemConfirmWithQty();
 });
 
 /* ============ Admin Login ============ */
@@ -3092,7 +3265,45 @@ document.getElementById("invImageRemove").addEventListener("click", () => {
 });
 
 /* ============ Life Tab ============ */
+function renderLifeStats() {
+  processDecay();
+
+  const stats = ["health", "energy", "hunger", "thirst"];
+  const labels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+
+  stats.forEach(stat => {
+    const val = Math.round(lifeStats[stat]);
+    const labelEl = document.getElementById(`lifeStat${stat.charAt(0).toUpperCase() + stat.slice(1)}Label`);
+    const valueEl = document.getElementById(`lifeStat${stat.charAt(0).toUpperCase() + stat.slice(1)}Value`);
+    const fillEl = document.getElementById(`lifeStat${stat.charAt(0).toUpperCase() + stat.slice(1)}Fill`);
+    if (labelEl) labelEl.textContent = labels[stat];
+    if (valueEl) valueEl.textContent = val;
+    if (fillEl) {
+      fillEl.style.width = val + "%";
+      // Add warning animation for low stats
+      if (val <= 20) {
+        fillEl.classList.add("bar-warning");
+      } else {
+        fillEl.classList.remove("bar-warning");
+      }
+    }
+  });
+
+  // Level
+  lifeStats.level = calcLevel();
+  const levelLabel = document.getElementById("lifeLevelLabel");
+  const levelFill = document.getElementById("lifeLevelFill");
+  const levelPts = document.getElementById("lifeLevelPts");
+  if (levelLabel) levelLabel.textContent = `${t("life_level")} ${lifeStats.level}`;
+  const totalPts = calcTotalPoints();
+  const ptsIntoLevel = totalPts % POINTS_PER_LEVEL;
+  const levelProgress = (ptsIntoLevel / POINTS_PER_LEVEL) * 100;
+  if (levelFill) levelFill.style.width = levelProgress + "%";
+  if (levelPts) levelPts.textContent = `${ptsIntoLevel}/${POINTS_PER_LEVEL} pts`;
+}
+
 function renderLife() {
+  renderLifeStats();
   const grid = document.getElementById("lifeGrid");
   grid.innerHTML = "";
 
@@ -3140,8 +3351,19 @@ function renderLife() {
   }
 
   items.forEach(item => {
+    const invItem = inventory.find(i => i.id === item.itemId);
+    const isConsumable = invItem && invItem.consumable && invItem.statEffects && invItem.statEffects.length > 0;
+
     const card = document.createElement("div");
-    card.className = "life-card";
+    card.className = "life-card" + (isConsumable ? " consumable" : "");
+
+    // Consumable badge
+    if (isConsumable) {
+      const badge = document.createElement("div");
+      badge.className = "life-card-badge";
+      badge.textContent = t("invModal_consumable");
+      card.appendChild(badge);
+    }
 
     if (item.image) {
       const img = document.createElement("img");
@@ -3152,7 +3374,7 @@ function renderLife() {
     } else {
       const noImg = document.createElement("div");
       noImg.className = "life-card-noimg";
-      noImg.textContent = "\u2728";
+      noImg.textContent = isConsumable ? "\u2728" : "\u2728";
       card.appendChild(noImg);
     }
 
@@ -3187,37 +3409,30 @@ function renderLife() {
     date.textContent = t("life_date")(d.toLocaleDateString());
     body.appendChild(date);
 
-    // Check if this item has a stat effect
-    const invItem = inventory.find(i => i.id === item.itemId);
-    if (invItem && invItem.effectStat && invItem.effectAmount > 0) {
-      const useBtn = document.createElement("button");
-      useBtn.className = "btn btn-primary btn-small life-use-btn";
-      const statIcon = { energy: "⚡", hunger: "🍽", thirst: "💧", health: "❤️" }[invItem.effectStat] || "✦";
-      useBtn.textContent = `Use ${statIcon} +${invItem.effectAmount} ${invItem.effectStat}`;
-
-      // Check cooldown for non-consumable
-      if (!invItem.consumable) {
-        const usage = petStats.lastUsed[invItem.id];
-        const now = Date.now();
-        const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-        if (usage && usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
-          const hoursLeft = Math.ceil((COOLDOWN_MS - (now - usage.firstUse)) / (1000 * 60 * 60));
-          useBtn.disabled = true;
-          useBtn.textContent = `⏳ Cooldown (${hoursLeft}h)`;
-          useBtn.classList.add("cooldown");
-        }
-      }
-
-      useBtn.addEventListener("click", () => useItemOnPet(item));
-      body.appendChild(useBtn);
+    // Stat effects preview for consumables
+    if (isConsumable) {
+      const effectsDiv = document.createElement("div");
+      effectsDiv.className = "life-card-effects";
+      const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+      invItem.statEffects.forEach(eff => {
+        const tag = document.createElement("span");
+        tag.className = "life-card-effect-tag " + (eff.amount >= 0 ? "positive" : "negative");
+        tag.textContent = `${eff.amount > 0 ? "+" : ""}${eff.amount} ${statLabels[eff.stat] || eff.stat}`;
+        effectsDiv.appendChild(tag);
+      });
+      body.appendChild(effectsDiv);
     }
 
-    // Show consumable badge
-    if (invItem && invItem.consumable) {
-      const badge = document.createElement("span");
-      badge.className = "life-card-badge consumable";
-      badge.textContent = "Consumable";
-      body.appendChild(badge);
+    // Use button for consumable items
+    if (isConsumable && item.qty > 0) {
+      const useArea = document.createElement("div");
+      useArea.className = "life-card-use";
+      const useBtn = document.createElement("button");
+      useBtn.className = "btn btn-primary btn-small";
+      useBtn.textContent = t("life_use");
+      useBtn.addEventListener("click", () => useItem(item, card));
+      useArea.appendChild(useBtn);
+      body.appendChild(useArea);
     }
 
     card.appendChild(body);
@@ -3225,128 +3440,65 @@ function renderLife() {
   });
 }
 
-/* ============ Pet Stats UI ============ */
-function renderPetStats() {
-  const energyBar = document.getElementById("statEnergyBar");
-  const hungerBar = document.getElementById("statHungerBar");
-  const thirstBar = document.getElementById("statThirstBar");
-  const healthBar = document.getElementById("statHealthBar");
-  const energyVal = document.getElementById("statEnergyVal");
-  const hungerVal = document.getElementById("statHungerVal");
-  const thirstVal = document.getElementById("statThirstVal");
-  const healthVal = document.getElementById("statHealthVal");
-  const warning = document.getElementById("petWarning");
-  const avatar = document.getElementById("petAvatar");
-  const levelEl = document.getElementById("petLevel");
+function useItem(redeemedItem, cardEl) {
+  const invItem = inventory.find(i => i.id === redeemedItem.itemId);
+  if (!invItem || !invItem.consumable || !invItem.statEffects || invItem.statEffects.length === 0) return;
 
-  if (!energyBar) return;
+  // Find how many of this item are in redeemed
+  const count = redeemed.filter(r => r.itemId === redeemedItem.itemId).length;
+  if (count <= 0) return;
 
-  const stats = [
-    { el: energyBar, val: energyVal, stat: petStats.energy, color: "#f59e0b" },
-    { el: hungerBar, val: hungerVal, stat: petStats.hunger, color: "#ef4444" },
-    { el: thirstBar, val: thirstVal, stat: petStats.thirst, color: "#3b82f6" },
-    { el: healthBar, val: healthVal, stat: petStats.health, color: "#10b981" },
-  ];
-
-  const avg = (petStats.energy + petStats.hunger + petStats.thirst + petStats.health) / 4;
-
-  stats.forEach(({ el, val, stat }) => {
-    const v = Math.round(clampStat(stat));
-    el.style.width = v + "%";
-    val.textContent = v;
-    val.style.color = v > 50 ? "inherit" : v > 25 ? "#f59e0b" : "#ef4444";
-    // Critical pulse
-    if (v <= 20) {
-      el.classList.add("critical");
-    } else {
-      el.classList.remove("critical");
+  // Apply stat effects
+  const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+  const effects = [];
+  invItem.statEffects.forEach(effect => {
+    if (effect.stat && typeof effect.amount === "number") {
+      lifeStats[effect.stat] = Math.max(0, Math.min(100, lifeStats[effect.stat] + effect.amount));
+      effects.push({ stat: effect.stat, label: statLabels[effect.stat] || effect.stat, amount: effect.amount });
     }
   });
 
-  // Update pet avatar based on average health
-  if (avg > 70) {
-    avatar.textContent = "🐣";
-  } else if (avg > 40) {
-    avatar.textContent = "🐥";
-  } else if (avg > 20) {
-    avatar.textContent = "🐤";
-  } else {
-    avatar.textContent = "😿";
-  }
+  // Remove one redeemed record (the oldest one)
+  const idx = redeemed.findIndex(r => r.itemId === redeemedItem.itemId);
+  if (idx !== -1) redeemed.splice(idx, 1);
+  saveRedeemed();
 
-  // Calculate level based on total points earned (simple: level = floor(avg / 10))
-  const level = Math.max(1, Math.floor(avg / 10));
-  levelEl.textContent = "Lvl " + level;
+  saveLifeStats();
 
-  // Show warnings
-  if (petStats.health < 20) {
-    warning.style.display = "flex";
-    warning.textContent = "Your pet is in poor health! Feed and hydrate them.";
-    warning.className = "pet-warning danger";
-  } else if (petStats.energy < 15 || petStats.hunger < 15 || petStats.thirst < 15) {
-    warning.style.display = "flex";
-    const low = [];
-    if (petStats.energy < 15) low.push("energy");
-    if (petStats.hunger < 15) low.push("hunger");
-    if (petStats.thirst < 15) low.push("thirst");
-    warning.textContent = `Low ${low.join(" and ")}! Use items to restore.`;
-    warning.className = "pet-warning warn";
-  } else {
-    warning.style.display = "none";
-  }
+  // Play use animation
+  playUseAnimation(effects, invItem.name);
+
+  // Short delay then re-render
+  setTimeout(() => {
+    renderLife();
+    renderScoreboard();
+  }, 1200);
 }
 
-function useItemOnPet(redeemedEntry) {
-  // Find the original inventory item to get effect info
-  const invItem = inventory.find(i => i.id === redeemedEntry.itemId);
-  if (!invItem || !invItem.effectStat || !invItem.effectAmount) return;
+function playUseAnimation(effects, itemName) {
+  // Flash overlay
+  const flash = document.createElement("div");
+  flash.className = "life-use-flash";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
 
-  const stat = invItem.effectStat;
-  const amount = invItem.effectAmount;
-  const now = Date.now();
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  // Popup with effects
+  const popup = document.createElement("div");
+  popup.className = "life-use-popup";
 
-  // Check cooldown for non-consumable items (2 uses per day, 24h cooldown)
-  if (!invItem.consumable) {
-    const usageKey = invItem.id; // use inventory id for non-consumable tracking
-    const usage = petStats.lastUsed[usageKey];
-    if (usage) {
-      if (usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
-        showToast("Wait 24h before using this item again");
-        return;
-      }
-      // Reset count if cooldown expired
-      if ((now - usage.firstUse) >= COOLDOWN_MS) {
-        delete petStats.lastUsed[usageKey];
-      }
-    }
-  }
+  const effectHtml = effects.map(e =>
+    `<div class="life-use-popup-effect ${e.amount >= 0 ? "positive" : "negative"}">${e.amount > 0 ? "+" : ""}${e.amount} ${e.label}</div>`
+  ).join("");
 
-  // Apply effect
-  petStats[stat] = clampStat(petStats[stat] + amount);
-  petStats.lastDecay = now;
+  popup.innerHTML = `
+    <div class="life-use-popup-inner">
+      <div class="life-use-popup-title">${t("life_used")}</div>
+      <div class="life-use-popup-effects">${effectHtml}</div>
+    </div>
+  `;
 
-  // Handle consumable: remove one redeemed entry for this item
-  if (invItem.consumable) {
-    const idx = redeemed.findIndex(r => r.itemId === invItem.id);
-    if (idx !== -1) redeemed.splice(idx, 1);
-    saveRedeemed();
-    showToast(`Used ${invItem.name} — ${stat} +${amount}`);
-  } else {
-    // Track usage for cooldown (keyed by inventory item id)
-    const usageKey = invItem.id;
-    if (!petStats.lastUsed[usageKey]) {
-      petStats.lastUsed[usageKey] = { count: 1, firstUse: now };
-    } else {
-      petStats.lastUsed[usageKey].count++;
-    }
-    const usesLeft = 2 - petStats.lastUsed[usageKey].count;
-    showToast(`Used ${invItem.name} — ${stat} +${amount}${usesLeft > 0 ? ` (${usesLeft} uses left)` : ""}`);
-  }
-
-  savePetStats();
-  renderPetStats();
-  renderLife();
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1200);
 }
 
 /* ============ Inventory Export / Import ============ */
@@ -3407,6 +3559,7 @@ document.getElementById("invImportInput").addEventListener("change", (e) => {
 /* ============ Init ============ */
 applyTheme();
 initNotifications();
+processDecay();
 refreshAll();
 setInterval(refreshAll, 60000);
 setInterval(checkAlarms, 15000);
@@ -3428,69 +3581,3 @@ if (inventory.length === 0) {
   } catch (e) {}
   refreshAll();
 }
-
-/* ============ PWA — Service Worker Registration ============ */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      console.log("[PWA] Service worker registered:", reg.scope);
-      // Check for updates periodically
-      setInterval(() => reg.update(), 60 * 60 * 1000);
-      // Listen for new service worker activation
-      reg.addEventListener("updatefound", () => {
-        const newSW = reg.installing;
-        if (newSW) {
-          newSW.addEventListener("statechange", () => {
-            if (newSW.state === "installed" && navigator.serviceWorker.controller) {
-              showToast("App updated! Refresh for the latest version.");
-            }
-          });
-        }
-      });
-    }).catch((err) => {
-      console.warn("[PWA] SW registration failed:", err);
-    });
-  });
-}
-
-/* ============ PWA — Install Prompt ============ */
-let deferredInstallPrompt = null;
-const installBanner = document.getElementById("installBanner");
-const installBtn = document.getElementById("installBtn");
-const installDismiss = document.getElementById("installDismiss");
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // Show install banner after 3 seconds
-  setTimeout(() => {
-    if (deferredInstallPrompt) {
-      installBanner.style.display = "block";
-    }
-  }, 3000);
-});
-
-if (installBtn) {
-  installBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    console.log("[PWA] Install outcome:", outcome);
-    deferredInstallPrompt = null;
-    installBanner.style.display = "none";
-  });
-}
-
-if (installDismiss) {
-  installDismiss.addEventListener("click", () => {
-    installBanner.style.display = "none";
-    // Don't show again for this session
-    deferredInstallPrompt = null;
-  });
-}
-
-window.addEventListener("appinstalled", () => {
-  installBanner.style.display = "none";
-  deferredInstallPrompt = null;
-  console.log("[PWA] App installed successfully");
-});

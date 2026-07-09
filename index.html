@@ -2,22 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game of Life — Daily Planner</title>
-
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3d8b6e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GoL Planner">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="description" content="A daily planner with task tracking, calendar, scoreboard, and store.">
-<meta name="mobile-web-app-capable" content="yes">
-<!-- Safari pinned tab icon (use SVG for best results) -->
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -106,6 +92,13 @@
       <p class="subtle" id="dashTaskMsg"></p>
       <p class="subtle" id="dashExpectedPts"></p>
       <p class="subtle" id="dashScoreTotal"></p>
+    </div>
+    <div class="dash-mini-stats" id="dashMiniStats">
+      <div class="dash-mini-stats-head">
+        <span class="dash-mini-stats-title" id="dashMiniStatsTitle">Status</span>
+        <span class="dash-mini-level" id="dashMiniLevel">Lv. 1</span>
+      </div>
+      <div class="dash-mini-bars" id="dashMiniBars"></div>
     </div>
     <div class="dash-two-col">
       <div class="dash-main">
@@ -363,69 +356,59 @@
         <span class="store-hero-num" id="lifeTotalItems">0</span>
       </div>
     </div>
-    <!-- Pet Stats -->
-    <div class="pet-stats-panel" id="petStatsPanel">
-      <div class="pet-hud">
-        <div class="pet-avatar-wrap">
-          <div class="pet-avatar" id="petAvatar">🐣</div>
-          <div class="pet-level" id="petLevel">Lvl 1</div>
-        </div>
-        <div class="pet-bars">
-          <div class="pet-bar-row">
-            <div class="pet-bar-icon">⚡</div>
-            <div class="pet-bar-info">
-              <div class="pet-bar-header">
-                <span class="pet-bar-name">Energy</span>
-                <span class="pet-bar-val" id="statEnergyVal">80</span>
-              </div>
-              <div class="pet-bar-track">
-                <div class="pet-bar-fill energy" id="statEnergyBar" style="width:80%"></div>
-                <div class="pet-bar-glow energy"></div>
-              </div>
-            </div>
-          </div>
-          <div class="pet-bar-row">
-            <div class="pet-bar-icon">🍽</div>
-            <div class="pet-bar-info">
-              <div class="pet-bar-header">
-                <span class="pet-bar-name">Hunger</span>
-                <span class="pet-bar-val" id="statHungerVal">70</span>
-              </div>
-              <div class="pet-bar-track">
-                <div class="pet-bar-fill hunger" id="statHungerBar" style="width:70%"></div>
-                <div class="pet-bar-glow hunger"></div>
-              </div>
-            </div>
-          </div>
-          <div class="pet-bar-row">
-            <div class="pet-bar-icon">💧</div>
-            <div class="pet-bar-info">
-              <div class="pet-bar-header">
-                <span class="pet-bar-name">Thirst</span>
-                <span class="pet-bar-val" id="statThirstVal">70</span>
-              </div>
-              <div class="pet-bar-track">
-                <div class="pet-bar-fill thirst" id="statThirstBar" style="width:70%"></div>
-                <div class="pet-bar-glow thirst"></div>
-              </div>
-            </div>
-          </div>
-          <div class="pet-bar-row">
-            <div class="pet-bar-icon">❤️</div>
-            <div class="pet-bar-info">
-              <div class="pet-bar-header">
-                <span class="pet-bar-name">Health</span>
-                <span class="pet-bar-val" id="statHealthVal">100</span>
-              </div>
-              <div class="pet-bar-track">
-                <div class="pet-bar-fill health" id="statHealthBar" style="width:100%"></div>
-                <div class="pet-bar-glow health"></div>
-              </div>
-            </div>
+    <div class="rpg-stats-panel" id="lifeStatsSection">
+      <div class="rpg-level-badge">
+        <div class="rpg-level-icon">&#9733;</div>
+        <div class="rpg-level-info">
+          <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
+          <div class="rpg-level-bar-wrap">
+            <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
+            <span class="rpg-level-pts" id="lifeLevelPts"></span>
           </div>
         </div>
       </div>
-      <div class="pet-warning" id="petWarning" style="display:none"></div>
+      <div class="rpg-stats-grid" id="lifeStatsGrid">
+        <div class="rpg-stat" data-stat="health">
+          <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
+              <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="energy">
+          <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
+              <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="hunger">
+          <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
+              <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="thirst">
+          <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
+              <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="filter-group" id="lifeFilters"></div>
     <div class="life-grid" id="lifeGrid"></div>
@@ -483,30 +466,18 @@
         <div id="invAccList" class="todo-input-list"></div>
         <button type="button" class="btn btn-ghost btn-small" id="invAddAccRow">+ Add accessory</button>
       </div>
-      <div class="field-section-divider">
-        <span class="divider-label">Pet Stat Effect</span>
-      </div>
-      <p class="subtle" style="margin:0 0 10px;font-size:12px">Make this item affect your pet's stats in the Life tab.</p>
-      <div class="field-row">
-        <label class="field">
-          <span id="invLabelEffectStat">Stat</span>
-          <select id="invItemEffectStat">
-            <option value="">None</option>
-            <option value="energy">Energy</option>
-            <option value="hunger">Hunger</option>
-            <option value="thirst">Thirst</option>
-            <option value="health">Health</option>
-          </select>
-        </label>
-        <label class="field">
-          <span id="invLabelEffectAmount">Effect Amount</span>
-          <input type="number" id="invItemEffectAmount" min="0" max="100" value="0" placeholder="e.g. 20">
-        </label>
-      </div>
-      <label class="field" style="flex-direction:row;align-items:center;gap:8px">
-        <input type="checkbox" id="invItemConsumable" style="width:16px;height:16px">
-        <span id="invLabelConsumable">Consumable <em>(removed from acquired items when used)</em></span>
+      <label class="field inv-consumable-field">
+        <span id="invLabelConsumable">Consumable</span>
+        <div class="inv-consumable-toggle">
+          <input type="checkbox" id="invItemConsumable">
+          <span class="inv-consumable-hint">Allow this item to be used from the Life tab</span>
+        </div>
       </label>
+      <div class="field" id="invStatEffectsSection">
+        <span id="invLabelStatEffects">Stat Effects <em>(optional)</em></span>
+        <div id="invStatEffectsList" class="todo-input-list"></div>
+        <button type="button" class="btn btn-ghost btn-small" id="invAddStatEffectRow">+ Add effect</button>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-danger" id="invDeleteBtn" style="margin-right:auto;display:none">Delete</button>
         <button type="button" class="btn btn-ghost" id="invCancelBtn">Cancel</button>
@@ -620,14 +591,6 @@
       <button type="button" class="btn btn-ghost" id="redeemCancelBtn">Cancel</button>
       <button type="button" class="btn btn-primary" id="redeemConfirmBtn">Confirm</button>
     </div>
-  </div>
-</div>
-
-<div class="install-banner" id="installBanner" style="display:none;">
-  <div class="install-banner-content">
-    <span>📱 Install this app on your device for quick access</span>
-    <button class="btn btn-primary btn-sm" id="installBtn">Install</button>
-    <button class="icon-btn install-dismiss" id="installDismiss">&times;</button>
   </div>
 </div>
 
