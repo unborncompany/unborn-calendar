@@ -1930,6 +1930,10 @@ function applySaveData(data) {
   try { localStorage.setItem("ledger.firedAlarms.v1", JSON.stringify(firedAlarms)); } catch (e) {}
   loadNotifSound();
   refreshAll();
+  // If user is signed in, push imported data to cloud so it syncs across devices
+  if (firebaseReady && currentUser) {
+    saveToCloud();
+  }
 }
 
 // Export — download JSON
@@ -3153,3 +3157,69 @@ if (inventory.length === 0) {
   } catch (e) {}
   refreshAll();
 }
+
+/* ============ PWA — Service Worker Registration ============ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      console.log("[PWA] Service worker registered:", reg.scope);
+      // Check for updates periodically
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+      // Listen for new service worker activation
+      reg.addEventListener("updatefound", () => {
+        const newSW = reg.installing;
+        if (newSW) {
+          newSW.addEventListener("statechange", () => {
+            if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+              showToast("App updated! Refresh for the latest version.");
+            }
+          });
+        }
+      });
+    }).catch((err) => {
+      console.warn("[PWA] SW registration failed:", err);
+    });
+  });
+}
+
+/* ============ PWA — Install Prompt ============ */
+let deferredInstallPrompt = null;
+const installBanner = document.getElementById("installBanner");
+const installBtn = document.getElementById("installBtn");
+const installDismiss = document.getElementById("installDismiss");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install banner after 3 seconds
+  setTimeout(() => {
+    if (deferredInstallPrompt) {
+      installBanner.style.display = "block";
+    }
+  }, 3000);
+});
+
+if (installBtn) {
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log("[PWA] Install outcome:", outcome);
+    deferredInstallPrompt = null;
+    installBanner.style.display = "none";
+  });
+}
+
+if (installDismiss) {
+  installDismiss.addEventListener("click", () => {
+    installBanner.style.display = "none";
+    // Don't show again for this session
+    deferredInstallPrompt = null;
+  });
+}
+
+window.addEventListener("appinstalled", () => {
+  installBanner.style.display = "none";
+  deferredInstallPrompt = null;
+  console.log("[PWA] App installed successfully");
+});

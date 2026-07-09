@@ -2,8 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Game of Life — Daily Planner</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3d8b6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GoL Planner">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="description" content="A daily planner with task tracking, calendar, scoreboard, and store.">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- Safari pinned tab icon (use SVG for best results) -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -518,6 +532,14 @@
       <button type="button" class="btn btn-ghost" id="redeemCancelBtn">Cancel</button>
       <button type="button" class="btn btn-primary" id="redeemConfirmBtn">Confirm</button>
     </div>
+  </div>
+</div>
+
+<div class="install-banner" id="installBanner" style="display:none;">
+  <div class="install-banner-content">
+    <span>📱 Install this app on your device for quick access</span>
+    <button class="btn btn-primary btn-sm" id="installBtn">Install</button>
+    <button class="icon-btn install-dismiss" id="installDismiss">&times;</button>
   </div>
 </div>
 
