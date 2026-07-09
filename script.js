@@ -3192,17 +3192,18 @@ function renderLife() {
     if (invItem && invItem.effectStat && invItem.effectAmount > 0) {
       const useBtn = document.createElement("button");
       useBtn.className = "btn btn-primary btn-small life-use-btn";
-      useBtn.textContent = `Use (+${invItem.effectAmount} ${invItem.effectStat})`;
+      const statIcon = { energy: "⚡", hunger: "🍽", thirst: "💧", health: "❤️" }[invItem.effectStat] || "✦";
+      useBtn.textContent = `Use ${statIcon} +${invItem.effectAmount} ${invItem.effectStat}`;
 
       // Check cooldown for non-consumable
-      if (!invItem.consumable && item.id) {
-        const usage = petStats.lastUsed[item.id];
+      if (!invItem.consumable) {
+        const usage = petStats.lastUsed[invItem.id];
         const now = Date.now();
         const COOLDOWN_MS = 24 * 60 * 60 * 1000;
         if (usage && usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
           const hoursLeft = Math.ceil((COOLDOWN_MS - (now - usage.firstUse)) / (1000 * 60 * 60));
           useBtn.disabled = true;
-          useBtn.textContent = `Cooldown (${hoursLeft}h)`;
+          useBtn.textContent = `⏳ Cooldown (${hoursLeft}h)`;
           useBtn.classList.add("cooldown");
         }
       }
@@ -3226,40 +3227,64 @@ function renderLife() {
 
 /* ============ Pet Stats UI ============ */
 function renderPetStats() {
-  const energySlider = document.getElementById("statEnergy");
-  const hungerSlider = document.getElementById("statHunger");
-  const thirstSlider = document.getElementById("statThirst");
-  const healthSlider = document.getElementById("statHealth");
+  const energyBar = document.getElementById("statEnergyBar");
+  const hungerBar = document.getElementById("statHungerBar");
+  const thirstBar = document.getElementById("statThirstBar");
+  const healthBar = document.getElementById("statHealthBar");
   const energyVal = document.getElementById("statEnergyVal");
   const hungerVal = document.getElementById("statHungerVal");
   const thirstVal = document.getElementById("statThirstVal");
   const healthVal = document.getElementById("statHealthVal");
   const warning = document.getElementById("petWarning");
+  const avatar = document.getElementById("petAvatar");
+  const levelEl = document.getElementById("petLevel");
 
-  if (!energySlider) return;
+  if (!energyBar) return;
 
-  energySlider.value = Math.round(petStats.energy);
-  hungerSlider.value = Math.round(petStats.hunger);
-  thirstSlider.value = Math.round(petStats.thirst);
-  healthSlider.value = Math.round(petStats.health);
-  energyVal.textContent = Math.round(petStats.energy);
-  hungerVal.textContent = Math.round(petStats.hunger);
-  thirstVal.textContent = Math.round(petStats.thirst);
-  healthVal.textContent = Math.round(petStats.health);
+  const stats = [
+    { el: energyBar, val: energyVal, stat: petStats.energy, color: "#f59e0b" },
+    { el: hungerBar, val: hungerVal, stat: petStats.hunger, color: "#ef4444" },
+    { el: thirstBar, val: thirstVal, stat: petStats.thirst, color: "#3b82f6" },
+    { el: healthBar, val: healthVal, stat: petStats.health, color: "#10b981" },
+  ];
 
-  // Update slider gradient fills
-  updateSliderFill(energySlider, petStats.energy);
-  updateSliderFill(hungerSlider, petStats.hunger);
-  updateSliderFill(thirstSlider, petStats.thirst);
-  updateSliderFill(healthSlider, petStats.health);
+  const avg = (petStats.energy + petStats.hunger + petStats.thirst + petStats.health) / 4;
+
+  stats.forEach(({ el, val, stat }) => {
+    const v = Math.round(clampStat(stat));
+    el.style.width = v + "%";
+    val.textContent = v;
+    val.style.color = v > 50 ? "inherit" : v > 25 ? "#f59e0b" : "#ef4444";
+    // Critical pulse
+    if (v <= 20) {
+      el.classList.add("critical");
+    } else {
+      el.classList.remove("critical");
+    }
+  });
+
+  // Update pet avatar based on average health
+  if (avg > 70) {
+    avatar.textContent = "🐣";
+  } else if (avg > 40) {
+    avatar.textContent = "🐥";
+  } else if (avg > 20) {
+    avatar.textContent = "🐤";
+  } else {
+    avatar.textContent = "😿";
+  }
+
+  // Calculate level based on total points earned (simple: level = floor(avg / 10))
+  const level = Math.max(1, Math.floor(avg / 10));
+  levelEl.textContent = "Lvl " + level;
 
   // Show warnings
   if (petStats.health < 20) {
-    warning.style.display = "block";
+    warning.style.display = "flex";
     warning.textContent = "Your pet is in poor health! Feed and hydrate them.";
     warning.className = "pet-warning danger";
   } else if (petStats.energy < 15 || petStats.hunger < 15 || petStats.thirst < 15) {
-    warning.style.display = "block";
+    warning.style.display = "flex";
     const low = [];
     if (petStats.energy < 15) low.push("energy");
     if (petStats.hunger < 15) low.push("hunger");
@@ -3269,12 +3294,6 @@ function renderPetStats() {
   } else {
     warning.style.display = "none";
   }
-}
-
-function updateSliderFill(slider, value) {
-  const pct = value + "%";
-  const color = value > 50 ? "#3d8b6e" : value > 25 ? "#f59e0b" : "#ef4444";
-  slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}, #e2e0d8 ${pct}, #e2e0d8 100%)`;
 }
 
 function useItemOnPet(redeemedEntry) {
@@ -3289,7 +3308,8 @@ function useItemOnPet(redeemedEntry) {
 
   // Check cooldown for non-consumable items (2 uses per day, 24h cooldown)
   if (!invItem.consumable) {
-    const usage = petStats.lastUsed[redeemedEntry.id];
+    const usageKey = invItem.id; // use inventory id for non-consumable tracking
+    const usage = petStats.lastUsed[usageKey];
     if (usage) {
       if (usage.count >= 2 && (now - usage.firstUse) < COOLDOWN_MS) {
         showToast("Wait 24h before using this item again");
@@ -3297,7 +3317,7 @@ function useItemOnPet(redeemedEntry) {
       }
       // Reset count if cooldown expired
       if ((now - usage.firstUse) >= COOLDOWN_MS) {
-        delete petStats.lastUsed[redeemedEntry.id];
+        delete petStats.lastUsed[usageKey];
       }
     }
   }
@@ -3306,20 +3326,22 @@ function useItemOnPet(redeemedEntry) {
   petStats[stat] = clampStat(petStats[stat] + amount);
   petStats.lastDecay = now;
 
-  // Handle consumable: remove from redeemed list
+  // Handle consumable: remove one redeemed entry for this item
   if (invItem.consumable) {
-    const idx = redeemed.findIndex(r => r.id === redeemedEntry.id);
+    const idx = redeemed.findIndex(r => r.itemId === invItem.id);
     if (idx !== -1) redeemed.splice(idx, 1);
     saveRedeemed();
     showToast(`Used ${invItem.name} — ${stat} +${amount}`);
   } else {
-    // Track usage for cooldown
-    if (!petStats.lastUsed[redeemedEntry.id]) {
-      petStats.lastUsed[redeemedEntry.id] = { count: 1, firstUse: now };
+    // Track usage for cooldown (keyed by inventory item id)
+    const usageKey = invItem.id;
+    if (!petStats.lastUsed[usageKey]) {
+      petStats.lastUsed[usageKey] = { count: 1, firstUse: now };
     } else {
-      petStats.lastUsed[redeemedEntry.id].count++;
+      petStats.lastUsed[usageKey].count++;
     }
-    showToast(`Used ${invItem.name} — ${stat} +${amount} (${2 - (petStats.lastUsed[redeemedEntry.id].count - 1)} uses left today)`);
+    const usesLeft = 2 - petStats.lastUsed[usageKey].count;
+    showToast(`Used ${invItem.name} — ${stat} +${amount}${usesLeft > 0 ? ` (${usesLeft} uses left)` : ""}`);
   }
 
   savePetStats();

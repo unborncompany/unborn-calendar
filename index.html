@@ -365,37 +365,65 @@
     </div>
     <!-- Pet Stats -->
     <div class="pet-stats-panel" id="petStatsPanel">
-      <div class="pet-stats-header">
-        <span class="pet-stats-title">Pet Stats</span>
-        <span class="pet-stats-hint subtle" id="petStatsHint">Use items to keep your pet healthy</span>
-      </div>
-      <div class="pet-stat-row">
-        <label class="pet-stat-label" for="statEnergy">
-          <span class="pet-stat-icon">&#9889;</span> Energy
-        </label>
-        <input type="range" class="pet-stat-slider stat-energy" id="statEnergy" min="0" max="100" value="80" disabled>
-        <span class="pet-stat-value" id="statEnergyVal">80</span>
-      </div>
-      <div class="pet-stat-row">
-        <label class="pet-stat-label" for="statHunger">
-          <span class="pet-stat-icon">&#127830;</span> Hunger
-        </label>
-        <input type="range" class="pet-stat-slider stat-hunger" id="statHunger" min="0" max="100" value="70" disabled>
-        <span class="pet-stat-value" id="statHungerVal">70</span>
-      </div>
-      <div class="pet-stat-row">
-        <label class="pet-stat-label" for="statThirst">
-          <span class="pet-stat-icon">&#128167;</span> Thirst
-        </label>
-        <input type="range" class="pet-stat-slider stat-thirst" id="statThirst" min="0" max="100" value="70" disabled>
-        <span class="pet-stat-value" id="statThirstVal">70</span>
-      </div>
-      <div class="pet-stat-row">
-        <label class="pet-stat-label" for="statHealth">
-          <span class="pet-stat-icon">&#10084;&#65039;</span> Health
-        </label>
-        <input type="range" class="pet-stat-slider stat-health" id="statHealth" min="0" max="100" value="100" disabled>
-        <span class="pet-stat-value" id="statHealthVal">100</span>
+      <div class="pet-hud">
+        <div class="pet-avatar-wrap">
+          <div class="pet-avatar" id="petAvatar">🐣</div>
+          <div class="pet-level" id="petLevel">Lvl 1</div>
+        </div>
+        <div class="pet-bars">
+          <div class="pet-bar-row">
+            <div class="pet-bar-icon">⚡</div>
+            <div class="pet-bar-info">
+              <div class="pet-bar-header">
+                <span class="pet-bar-name">Energy</span>
+                <span class="pet-bar-val" id="statEnergyVal">80</span>
+              </div>
+              <div class="pet-bar-track">
+                <div class="pet-bar-fill energy" id="statEnergyBar" style="width:80%"></div>
+                <div class="pet-bar-glow energy"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pet-bar-row">
+            <div class="pet-bar-icon">🍽</div>
+            <div class="pet-bar-info">
+              <div class="pet-bar-header">
+                <span class="pet-bar-name">Hunger</span>
+                <span class="pet-bar-val" id="statHungerVal">70</span>
+              </div>
+              <div class="pet-bar-track">
+                <div class="pet-bar-fill hunger" id="statHungerBar" style="width:70%"></div>
+                <div class="pet-bar-glow hunger"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pet-bar-row">
+            <div class="pet-bar-icon">💧</div>
+            <div class="pet-bar-info">
+              <div class="pet-bar-header">
+                <span class="pet-bar-name">Thirst</span>
+                <span class="pet-bar-val" id="statThirstVal">70</span>
+              </div>
+              <div class="pet-bar-track">
+                <div class="pet-bar-fill thirst" id="statThirstBar" style="width:70%"></div>
+                <div class="pet-bar-glow thirst"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pet-bar-row">
+            <div class="pet-bar-icon">❤️</div>
+            <div class="pet-bar-info">
+              <div class="pet-bar-header">
+                <span class="pet-bar-name">Health</span>
+                <span class="pet-bar-val" id="statHealthVal">100</span>
+              </div>
+              <div class="pet-bar-track">
+                <div class="pet-bar-fill health" id="statHealthBar" style="width:100%"></div>
+                <div class="pet-bar-glow health"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="pet-warning" id="petWarning" style="display:none"></div>
     </div>
