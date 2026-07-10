@@ -209,7 +209,7 @@ function openDetailModal(entryId) {
   currentDetailId = entryId;
 
   const status = getStatus(entry);
-  const statusText = status === "completed" ? t("detail_completed") : status === "past-due" ? t("detail_pastDue") : t("detail_active");
+  const statusText = status === "completed" ? t("detail_completed") : status === "pending" ? t("detail_pastDue") : t("detail_active");
   document.getElementById("detailName").textContent = entry.name;
   document.getElementById("detailStatus").textContent = statusText;
   document.getElementById("detailStatus").className = `status-badge status-${status}`;

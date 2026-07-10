@@ -12,23 +12,8 @@ function renderStore() {
   const available = total - storeSpent;
 
   // Filter chips
-  const filtersEl = document.getElementById("storeFilters");
-  filtersEl.innerHTML = "";
   const categories = [...new Set(inventory.filter(i => i.quantity > 0).map(i => i.category))];
-  const allChip = document.createElement("button");
-  allChip.className = "chip-filter" + (activeStoreFilter === "all" ? " active" : "");
-  allChip.dataset.filter = "all";
-  allChip.textContent = t("inv_all");
-  allChip.addEventListener("click", () => { activeStoreFilter = "all"; renderStore(); });
-  filtersEl.appendChild(allChip);
-  categories.forEach(cat => {
-    const chip = document.createElement("button");
-    chip.className = "chip-filter" + (activeStoreFilter === cat ? " active" : "");
-    chip.dataset.filter = cat;
-    chip.textContent = cat;
-    chip.addEventListener("click", () => { activeStoreFilter = cat; renderStore(); });
-    filtersEl.appendChild(chip);
-  });
+  renderChipFilters(document.getElementById("storeFilters"), categories, activeStoreFilter, (val) => { activeStoreFilter = val; renderStore(); });
 
   // Sort controls
   const sortEl = document.createElement("div");
@@ -66,7 +51,7 @@ function renderStore() {
   }
 
   if (storeItems.length === 0) {
-    grid.innerHTML = `<div class="empty-state store-empty"><span>${t("dash_empty")}</span>${t("store_addFirst")}</div>`;
+    grid.innerHTML = renderEmptyState(t("dash_empty"), t("store_addFirst"), "store-empty");
     return;
   }
 

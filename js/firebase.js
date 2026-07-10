@@ -99,8 +99,6 @@ function getCloudData() {
     deletePenalties: deletePenalties,
     firedAlarms: firedAlarms,
     notifSound: notifSoundData,
-    adminUser: adminUser,
-    adminPass: adminPass,
     lifeStats: lifeStats,
     updatedAt: new Date().toISOString(),
   };
@@ -147,8 +145,6 @@ async function loadFromCloud() {
       if (data.deletePenalties) deletePenalties = data.deletePenalties;
       if (data.firedAlarms) firedAlarms = data.firedAlarms;
       if (data.notifSound) notifSoundData = data.notifSound;
-      if (data.adminUser) adminUser = data.adminUser;
-      if (data.adminPass) adminPass = data.adminPass;
       if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
       // Save everything to localStorage as cache
       saveEntries();

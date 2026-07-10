@@ -24,6 +24,7 @@ const MAX_ENTRIES_PER_DAY = 15;
 const MAX_SEC_TASKS = 15;
 const MAX_DAILY_POINTS = 120;
 const COOLDOWN_MINUTES = 10;
+const ANTI_CHEAT_WINDOW_MINUTES = COOLDOWN_MINUTES * 2;
 
 /* ---------- State ---------- */
 let entries = loadEntries();

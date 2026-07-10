@@ -130,7 +130,7 @@ function renderSecTasks() {
   // Tomorrow's secondary tasks (with add/remove)
   const tomorrowIncomplete = tomorrowTasks.filter(t => !t.done);
   if (tomorrowIncomplete.length === 0) {
-    list.innerHTML = `<div class="empty-state" style="padding:12px"><span>${t("dash_clear")}</span>${t("dash_secNoTasks")}</div>`;
+    list.innerHTML = renderEmptyState(t("dash_clear"), t("dash_secNoTasks"), "", "padding:12px");
     return;
   }
 
@@ -281,7 +281,7 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false) {
     .sort((a, b) => deadlineOf(a) - deadlineOf(b));
 
   if (dayEntries.length === 0) {
-    container.innerHTML = `<div class="empty-state life-empty" style="padding:16px;grid-column:1/-1"><span>${t("dash_free")}</span>${emptyMsg || t("dash_nothingToday")}</div>`;
+    container.innerHTML = renderEmptyState(t("dash_free"), emptyMsg || t("dash_nothingToday"), "life-empty", "padding:16px;grid-column:1/-1");
     return;
   }
 
@@ -413,14 +413,17 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false) {
       card.appendChild(body);
       container.appendChild(card);
     } else {
-      // Dashboard style entry
-      const wrap = document.createElement("div");
-      wrap.className = `dash-entry-wrap status-${entry._status}`;
+      // Dashboard style entry — 3 states
+      const isCompleted = entry._status === "completed" && entry.pointsAwardedAt;
 
-      // Regular entry card with todos - always visible
+      const wrap = document.createElement("div");
+      wrap.className = `dash-entry-wrap status-${entry._status}` + (isCompleted ? " dash-entry-locked" : "");
+
+      // Header — shared across active and locked
       const header = document.createElement("div");
       header.className = "dash-entry-header";
 
+      const ptsDisplay = isCompleted ? calcEntryPoints(entry) : entryPts;
       header.innerHTML = `
         <div class="dash-entry-info">
           <div class="dash-entry-meta">
@@ -430,34 +433,38 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false) {
           ${entry.description ? `<div class="dash-entry-desc">${escapeHTML(entry.description)}</div>` : ''}
           <div class="dash-entry-progress">${doneCount}/${entry.todos.length} ${t("dash_done")}</div>
         </div>
-        <span class="dash-entry-pts ${entryPts >= 0 ? "pos" : "neg"}">${entryPts >= 0 ? "+" : ""}${entryPts}</span>
+        <span class="dash-entry-pts ${ptsDisplay >= 0 ? "pos" : "neg"}">${ptsDisplay >= 0 ? "+" : ""}${ptsDisplay}</span>
       `;
       wrap.appendChild(header);
 
-      // Todos section - always visible
+      // Todos section — scrollable, locked if completed
       const todosDiv = document.createElement("div");
-      todosDiv.className = "dash-entry-todos dash-entry-todos-visible";
+      todosDiv.className = "dash-entry-todos dash-entry-todos-visible dash-entry-todos-scroll";
       entry.todos.forEach(todo => {
         const item = document.createElement("label");
         item.className = "dash-todo-item" + (todo.done ? " done" : "");
-        item.innerHTML = `<input type="checkbox" class="dash-todo-check" ${todo.done ? "checked" : ""}> <span>${escapeHTML(todo.text)}</span>`;
-        item.querySelector("input").addEventListener("change", (e) => {
-          if (e.target.checked && entry.createdAt && isCooldownActive(entry.createdAt)) {
-            e.target.checked = false;
-            showToast(t("toast_cooldown")(getRemainingCooldown(entry.createdAt)));
-            return;
-          }
-          todo.done = e.target.checked;
-          saveEntries();
-          item.classList.toggle("done", todo.done);
-          const newDone = entry.todos.filter(t => t.done).length;
-          header.querySelector(".dash-entry-progress").textContent = `${newDone}/${entry.todos.length} ${t("dash_done")}`;
-          const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
-          entry.pendingPoints = newAllDone;
-          wrap.className = `dash-entry-wrap status-${getStatus(entry)}`;
-          renderPointsSummary();
-          renderLifeStats();
-        });
+        const checkedAttr = todo.done ? " checked" : "";
+        const disabledAttr = isCompleted ? " disabled" : "";
+        item.innerHTML = `<input type="checkbox" class="dash-todo-check"${checkedAttr}${disabledAttr}> <span>${escapeHTML(todo.text)}</span>`;
+        if (!isCompleted) {
+          item.querySelector("input").addEventListener("change", (e) => {
+            if (e.target.checked && entry.createdAt && isCooldownActive(entry.createdAt)) {
+              e.target.checked = false;
+              showToast(t("toast_cooldown")(getRemainingCooldown(entry.createdAt)));
+              return;
+            }
+            todo.done = e.target.checked;
+            saveEntries();
+            item.classList.toggle("done", todo.done);
+            const newDone = entry.todos.filter(t => t.done).length;
+            header.querySelector(".dash-entry-progress").textContent = `${newDone}/${entry.todos.length} ${t("dash_done")}`;
+            const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
+            entry.pendingPoints = newAllDone;
+            wrap.className = `dash-entry-wrap status-${getStatus(entry)}`;
+            renderPointsSummary();
+            renderLifeStats();
+          });
+        }
         todosDiv.appendChild(item);
       });
 

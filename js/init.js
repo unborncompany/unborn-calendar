@@ -134,17 +134,14 @@ setInterval(updateClock, 1000);
 
 // Load default inventory if none exists
 if (inventory.length === 0) {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "default-inventory.json", false);
-    xhr.send();
-    if (xhr.status === 200 || xhr.status === 0) {
-      const data = JSON.parse(xhr.responseText);
+  fetch("default-inventory.json")
+    .then(res => res.json())
+    .then(data => {
       if (Array.isArray(data) && data.length > 0) {
         inventory = data;
         saveInventory();
       }
-    }
-  } catch (e) {}
-  refreshAll();
+      refreshAll();
+    })
+    .catch(() => { refreshAll(); });
 }

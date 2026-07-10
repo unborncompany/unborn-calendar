@@ -35,32 +35,9 @@ function saveInventory() {
     opt.textContent = c;
     sel.appendChild(opt);
   });
-
-  // Populate filter chips
-  const filters = document.getElementById("invFilters");
-  filters.innerHTML = "";
-  const allChip = document.createElement("button");
-  allChip.className = "chip-filter active";
-  allChip.dataset.filter = "all";
-  allChip.textContent = t("inv_all");
-  filters.appendChild(allChip);
-  t("inv_categories").forEach((c, i) => {
-    const chip = document.createElement("button");
-    chip.className = "chip-filter";
-    chip.dataset.filter = INV_CATEGORIES[i];
-    chip.textContent = c;
-    filters.appendChild(chip);
-  });
 })();
 
-document.getElementById("invFilters").addEventListener("click", (e) => {
-  const chip = e.target.closest(".chip-filter");
-  if (!chip) return;
-  document.querySelectorAll("#invFilters .chip-filter").forEach(c => c.classList.remove("active"));
-  chip.classList.add("active");
-  activeInvFilter = chip.dataset.filter;
-  renderInventory();
-});
+renderChipFilters(document.getElementById("invFilters"), INV_CATEGORIES, activeInvFilter, (val) => { activeInvFilter = val; renderInventory(); });
 
 function formatPrice(n) {
   return "$" + Number(n).toFixed(2);
@@ -96,7 +73,7 @@ function renderInventory() {
   `;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><span>${t("dash_empty")}</span>${activeInvFilter !== "all" ? t("inv_noCategory") : t("inv_addFirst")}</div>`;
+    list.innerHTML = renderEmptyState(t("dash_empty"), activeInvFilter !== "all" ? t("inv_noCategory") : t("inv_addFirst"));
     return;
   }
 

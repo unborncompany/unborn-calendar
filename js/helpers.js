@@ -90,29 +90,23 @@ function canAddSecTask() {
   return secTasks.length < MAX_SEC_TASKS;
 }
 
+function minutesSince(isoString) {
+  if (!isoString) return Infinity;
+  return (Date.now() - new Date(isoString).getTime()) / 60000;
+}
+
 function isCooldownActive(createdAt) {
-  if (!createdAt) return false;
-  const created = new Date(createdAt);
-  const now = new Date();
-  const diffMs = now - created;
-  return diffMs < COOLDOWN_MINUTES * 60 * 1000;
+  return minutesSince(createdAt) < COOLDOWN_MINUTES;
 }
 
 function getRemainingCooldown(createdAt) {
-  if (!createdAt) return 0;
-  const created = new Date(createdAt);
-  const now = new Date();
-  const diffMs = now - created;
-  const remaining = COOLDOWN_MINUTES * 60 * 1000 - diffMs;
-  return remaining > 0 ? Math.ceil(remaining / 60000) : 0;
+  const remaining = COOLDOWN_MINUTES - minutesSince(createdAt);
+  return remaining > 0 ? Math.ceil(remaining) : 0;
 }
 
 function isAntiCheatActive(createdAt, pointsAwardedAt) {
   if (!createdAt || !pointsAwardedAt) return false;
-  const antiCheatWindow = (COOLDOWN_MINUTES + COOLDOWN_MINUTES) * 60 * 1000;
-  const created = new Date(createdAt);
-  const awarded = new Date(pointsAwardedAt);
-  return (awarded - created) < antiCheatWindow;
+  return (new Date(pointsAwardedAt) - new Date(createdAt)) / 60000 < ANTI_CHEAT_WINDOW_MINUTES;
 }
 
 function calcDayPoints(dateStr) {
@@ -153,4 +147,28 @@ function calcTotalPointsCapped() {
     total += Math.min(dayPts, MAX_DAILY_POINTS);
   }
   return total;
+}
+
+function renderChipFilters(containerEl, categories, activeValue, onSelect) {
+  containerEl.innerHTML = "";
+  const allChip = document.createElement("button");
+  allChip.className = "chip-filter" + (activeValue === "all" ? " active" : "");
+  allChip.dataset.filter = "all";
+  allChip.textContent = t("inv_all");
+  allChip.addEventListener("click", () => onSelect("all"));
+  containerEl.appendChild(allChip);
+  categories.forEach(cat => {
+    const chip = document.createElement("button");
+    chip.className = "chip-filter" + (activeValue === cat ? " active" : "");
+    chip.dataset.filter = cat;
+    chip.textContent = cat;
+    chip.addEventListener("click", () => onSelect(cat));
+    containerEl.appendChild(chip);
+  });
+}
+
+function renderEmptyState(iconText, message, extraClass, extraStyle) {
+  const cls = extraClass ? " " + extraClass : "";
+  const style = extraStyle ? ` style="${extraStyle}"` : "";
+  return `<div class="empty-state${cls}"${style}><span>${iconText}</span>${message}</div>`;
 }

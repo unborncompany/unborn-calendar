@@ -43,7 +43,7 @@ function renderLife() {
   document.getElementById("lifeTotalItems").textContent = redeemed.length;
 
   if (redeemed.length === 0) {
-    grid.innerHTML = `<div class="empty-state life-empty"><span>${t("dash_empty")}</span>${t("life_empty")}</div>`;
+    grid.innerHTML = renderEmptyState(t("dash_empty"), t("life_empty"), "life-empty");
   } else {
     // Group by item
     const grouped = {};
@@ -58,23 +58,8 @@ function renderLife() {
     });
 
     // Filter chips
-    const filtersEl = document.getElementById("lifeFilters");
-    filtersEl.innerHTML = "";
     const categories = [...new Set(Object.values(grouped).map(i => i.category))];
-    const allChip = document.createElement("button");
-    allChip.className = "chip-filter" + (activeLifeFilter === "all" ? " active" : "");
-    allChip.dataset.filter = "all";
-    allChip.textContent = t("inv_all");
-    allChip.addEventListener("click", () => { activeLifeFilter = "all"; renderLife(); });
-    filtersEl.appendChild(allChip);
-    categories.forEach(cat => {
-      const chip = document.createElement("button");
-      chip.className = "chip-filter" + (activeLifeFilter === cat ? " active" : "");
-      chip.dataset.filter = cat;
-      chip.textContent = cat;
-      chip.addEventListener("click", () => { activeLifeFilter = cat; renderLife(); });
-      filtersEl.appendChild(chip);
-    });
+    renderChipFilters(document.getElementById("lifeFilters"), categories, activeLifeFilter, (val) => { activeLifeFilter = val; renderLife(); });
 
     let items = Object.values(grouped);
     if (activeLifeFilter !== "all") {
