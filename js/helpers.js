@@ -45,11 +45,6 @@ function deadlineOf(entry) {
 }
 
 function getStatus(entry) {
-  // Migration: if completedAt is missing but all todos are done, stamp it now
-  if (!entry.completedAt && entry.todos && entry.todos.length > 0 && entry.todos.every(t => t.done)) {
-    entry.completedAt = new Date().toISOString();
-    saveEntries();
-  }
   if (entry.completedAt) return "completed";
   const now = new Date();
   return now > deadlineOf(entry) ? "pending" : "active";
@@ -80,4 +75,82 @@ function escapeHTML(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
+}
+
+/* ---------- Caps & Cooldown Helpers ---------- */
+function countEntriesForDate(dateStr) {
+  return entries.filter(e => e.date === dateStr).length;
+}
+
+function canAddEntryForDate(dateStr) {
+  return countEntriesForDate(dateStr) < MAX_ENTRIES_PER_DAY;
+}
+
+function canAddSecTask() {
+  return secTasks.length < MAX_SEC_TASKS;
+}
+
+function isCooldownActive(createdAt) {
+  if (!createdAt) return false;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  return diffMs < COOLDOWN_MINUTES * 60 * 1000;
+}
+
+function getRemainingCooldown(createdAt) {
+  if (!createdAt) return 0;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - created;
+  const remaining = COOLDOWN_MINUTES * 60 * 1000 - diffMs;
+  return remaining > 0 ? Math.ceil(remaining / 60000) : 0;
+}
+
+function isAntiCheatActive(createdAt, pointsAwardedAt) {
+  if (!createdAt || !pointsAwardedAt) return false;
+  const antiCheatWindow = (COOLDOWN_MINUTES + COOLDOWN_MINUTES) * 60 * 1000;
+  const created = new Date(createdAt);
+  const awarded = new Date(pointsAwardedAt);
+  return (awarded - created) < antiCheatWindow;
+}
+
+function calcDayPoints(dateStr) {
+  const dayEntries = entries.filter(e => e.date === dateStr);
+  let pts = 0;
+  for (const e of dayEntries) {
+    pts += calcEntryPoints(e);
+  }
+  const daySecTasks = secTasks.filter(t => {
+    if (t.done && t.doneAt) {
+      const doneDate = t.doneAt.slice(0, 10);
+      return doneDate === dateStr;
+    }
+    return t.targetDate === dateStr;
+  });
+  for (const task of daySecTasks) {
+    pts += getSecTaskPoints(task);
+  }
+  const daySecDeleted = deletedSecTasks.filter(d => d.deletedAt && d.deletedAt.slice(0, 10) === dateStr);
+  pts += daySecDeleted.length * -1;
+  const dayEdits = editPenalties.filter(p => p.editedAt && p.editedAt.slice(0, 10) === dateStr);
+  pts += dayEdits.length * -1;
+  const dayDeletes = deletePenalties.filter(p => p.deletedAt && p.deletedAt.slice(0, 10) === dateStr);
+  pts += dayDeletes.length * -2;
+  return pts;
+}
+
+function calcTotalPointsCapped() {
+  const allDates = new Set();
+  entries.forEach(e => allDates.add(e.date));
+  secTasks.forEach(t => { if (t.done && t.doneAt) allDates.add(t.doneAt.slice(0, 10)); else allDates.add(t.targetDate); });
+  deletedSecTasks.forEach(d => { if (d.deletedAt) allDates.add(d.deletedAt.slice(0, 10)); });
+  editPenalties.forEach(p => { if (p.editedAt) allDates.add(p.editedAt.slice(0, 10)); });
+  deletePenalties.forEach(p => { if (p.deletedAt) allDates.add(p.deletedAt.slice(0, 10)); });
+  let total = 0;
+  for (const date of allDates) {
+    const dayPts = calcDayPoints(date);
+    total += Math.min(dayPts, MAX_DAILY_POINTS);
+  }
+  return total;
 }

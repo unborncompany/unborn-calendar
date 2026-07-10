@@ -177,9 +177,14 @@ entryForm.addEventListener("submit", (e) => {
     saveEditPenalties();
     showToast(t("toast_entryUpdated"));
   } else {
+    if (!canAddEntryForDate(date)) {
+      showToast(t("toast_entryCap"));
+      return;
+    }
     entries.push({
       id: uid(),
       name, description, date, time, alarms,
+      createdAt: new Date().toISOString(),
       todos: todoTexts.map(({ text, id: todoRowId }) => ({
         id: todoRowId,
         text,
@@ -220,13 +225,48 @@ function openDetailModal(entryId) {
     item.className = "detail-todo-item" + (todo.done ? " done" : "");
     item.innerHTML = `<input type="checkbox" ${todo.done ? "checked" : ""}> <span>${escapeHTML(todo.text)}</span>`;
     item.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked && entry.createdAt && isCooldownActive(entry.createdAt)) {
+        e.target.checked = false;
+        showToast(t("toast_cooldown")(getRemainingCooldown(entry.createdAt)));
+        return;
+      }
       todo.done = e.target.checked;
+      const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
+      if (newAllDone) {
+        entry.pendingPoints = true;
+      } else {
+        entry.pendingPoints = false;
+      }
       saveEntries();
       openDetailModal(entryId);
       refreshAll();
     });
     todosWrap.appendChild(item);
   });
+
+  const allDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
+  if (allDone && entry.pendingPoints && !entry.pointsAwardedAt) {
+    const completedBanner = document.createElement("div");
+    completedBanner.className = "detail-completed-banner";
+    completedBanner.innerHTML = `
+      <span class="detail-completed-text">${t("dash_completed")}</span>
+      <button class="btn btn-primary btn-small detail-get-points-btn">${t("dash_getPoints")}</button>
+    `;
+    completedBanner.querySelector(".detail-get-points-btn").addEventListener("click", () => {
+      entry.completedAt = new Date().toISOString();
+      entry.pointsAwardedAt = new Date().toISOString();
+      entry.pendingPoints = false;
+      saveEntries();
+      const pts = calcEntryPoints(entry);
+      if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+        showToast(t("toast_antiCheat"));
+      }
+      playPointsCelebration(pts, entry.name);
+      closeDetailModal();
+      refreshAll();
+    });
+    todosWrap.appendChild(completedBanner);
+  }
 
   // Alarms — editable
   const alarmSection = document.getElementById("detailAlarms");

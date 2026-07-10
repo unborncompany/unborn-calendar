@@ -80,10 +80,20 @@ function applySaveData(data) {
         done: !!t.done,
       })) : [],
       completedAt: e.completedAt || null,
+      createdAt: e.createdAt || e.completedAt || null,
+      pendingPoints: e.pendingPoints || false,
+      pointsAwardedAt: e.pointsAwardedAt || null,
     }));
   }
   if (data.inventory && Array.isArray(data.inventory)) inventory = data.inventory;
-  if (data.secTasks && Array.isArray(data.secTasks)) secTasks = data.secTasks;
+  if (data.secTasks && Array.isArray(data.secTasks)) {
+    secTasks = data.secTasks.map(s => ({
+      ...s,
+      createdAt: s.createdAt || null,
+      pendingPoints: s.pendingPoints || false,
+      pointsAwardedAt: s.pointsAwardedAt || null,
+    }));
+  }
   if (data.deletedSecTasks && Array.isArray(data.deletedSecTasks)) deletedSecTasks = data.deletedSecTasks;
   if (data.userProfile) userProfile = data.userProfile;
   if (data.lang) { lang = data.lang; localStorage.setItem(LANG_KEY, lang); document.getElementById("langSelect").value = lang; }
@@ -183,36 +193,35 @@ document.getElementById("quickSaveBtn").addEventListener("click", quickSave);
 /* ============ Scoreboard ============ */
 function calcMaxPoints(entry) {
   if (getStatus(entry) === "completed") return 0;
-  return 5; // max possible if completed before deadline
+  if (entry.pointsAwardedAt) return 0;
+  return 5;
 }
 
 function calcEntryPoints(entry) {
   const status = getStatus(entry);
   if (status !== "completed") return 0;
 
+  if (entry.pointsAwardedAt && entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+    return 1;
+  }
+
   const deadline = deadlineOf(entry);
-  // Use the locked-in completion timestamp; fall back to "now" for legacy entries
   const completedAt = entry.completedAt ? new Date(entry.completedAt) : new Date();
 
   if (completedAt <= deadline) {
-    return 5; // completed before deadline
+    return 5;
   }
 
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
   if (completedAt - deadline > oneWeek) {
-    return -4; // deadline passed by 1+ week
+    return -4;
   }
 
-  return 2; // completed after deadline
+  return 2;
 }
 
 function calcTotalPoints() {
-  const entryPts = entries.reduce((sum, e) => sum + calcEntryPoints(e), 0);
-  const secPts = secTasks.reduce((sum, t) => sum + getSecTaskPoints(t), 0);
-  const deletedPts = deletedSecTasks.length * -1;
-  const editPts = editPenalties.length * -1;
-  const deletePts = deletePenalties.length * -2;
-  return entryPts + secPts + deletedPts + editPts + deletePts;
+  return calcTotalPointsCapped();
 }
 
 // Listen to tab changes

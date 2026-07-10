@@ -19,6 +19,12 @@ const EDIT_PENALTY_KEY = "ledger.editPenalties.v1";
 const DELETE_PENALTY_KEY = "ledger.deletePenalties.v1";
 const LIFE_STATS_KEY = "ledger.lifeStats.v1";
 
+/* ---------- Caps ---------- */
+const MAX_ENTRIES_PER_DAY = 15;
+const MAX_SEC_TASKS = 15;
+const MAX_DAILY_POINTS = 120;
+const COOLDOWN_MINUTES = 10;
+
 /* ---------- State ---------- */
 let entries = loadEntries();
 let currentCalDate = new Date();

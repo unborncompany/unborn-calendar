@@ -1,10 +1,15 @@
 /* ============ store.js — Store & Redeem ============ */
 
+let activeStoreSort = "default";
+
 function renderStore() {
   const grid = document.getElementById("storeGrid");
   grid.innerHTML = "";
 
   renderPointsSummary();
+
+  const total = calcTotalPoints();
+  const available = total - storeSpent;
 
   // Filter chips
   const filtersEl = document.getElementById("storeFilters");
@@ -25,9 +30,39 @@ function renderStore() {
     filtersEl.appendChild(chip);
   });
 
+  // Sort controls
+  const sortEl = document.createElement("div");
+  sortEl.className = "store-sort-controls";
+  const sortLabel = document.createElement("span");
+  sortLabel.className = "store-sort-label";
+  sortLabel.textContent = t("store_sortByPrice") + ":";
+  sortEl.appendChild(sortLabel);
+
+  const sortOptions = [
+    { key: "default", label: t("store_sortAz") },
+    { key: "priceAsc", label: t("store_sortPriceAsc") },
+    { key: "priceDesc", label: t("store_sortPriceDesc") },
+  ];
+  sortOptions.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "chip-filter" + (activeStoreSort === opt.key ? " active" : "");
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => { activeStoreSort = opt.key; renderStore(); });
+    sortEl.appendChild(btn);
+  });
+  filtersEl.appendChild(sortEl);
+
   let storeItems = inventory.filter(item => item.quantity > 0);
   if (activeStoreFilter !== "all") {
     storeItems = storeItems.filter(item => item.category === activeStoreFilter);
+  }
+
+  if (activeStoreSort === "priceAsc") {
+    storeItems.sort((a, b) => a.price - b.price);
+  } else if (activeStoreSort === "priceDesc") {
+    storeItems.sort((a, b) => b.price - a.price);
+  } else {
+    storeItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   if (storeItems.length === 0) {
@@ -36,10 +71,10 @@ function renderStore() {
   }
 
   storeItems.forEach(item => {
+    const canAfford = available >= item.price;
     const card = document.createElement("div");
-    card.className = "store-card";
+    card.className = "store-card" + (!canAfford ? " cant-afford" : "");
 
-    // Image area with qty badge
     const imgArea = document.createElement("div");
     imgArea.className = "store-card-img-area";
     if (item.image) {
@@ -62,7 +97,6 @@ function renderStore() {
     }
     card.appendChild(imgArea);
 
-    // Body
     const body = document.createElement("div");
     body.className = "store-card-body";
 
@@ -87,6 +121,13 @@ function renderStore() {
     price.className = "store-card-price";
     price.textContent = item.price + " pts";
     body.appendChild(price);
+
+    if (!canAfford) {
+      const notEnough = document.createElement("div");
+      notEnough.className = "store-card-not-enough";
+      notEnough.textContent = t("store_notEnoughCard");
+      body.appendChild(notEnough);
+    }
 
     const redeemArea = document.createElement("div");
     redeemArea.className = "store-card-redeem";

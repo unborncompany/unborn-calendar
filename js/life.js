@@ -44,143 +44,142 @@ function renderLife() {
 
   if (redeemed.length === 0) {
     grid.innerHTML = `<div class="empty-state life-empty"><span>${t("dash_empty")}</span>${t("life_empty")}</div>`;
-    return;
+  } else {
+    // Group by item
+    const grouped = {};
+    redeemed.forEach(r => {
+      if (!grouped[r.itemId]) {
+        grouped[r.itemId] = { ...r, qty: 0, lastRedeemed: r.redeemedAt };
+      }
+      grouped[r.itemId].qty++;
+      if (r.redeemedAt > grouped[r.itemId].lastRedeemed) {
+        grouped[r.itemId].lastRedeemed = r.redeemedAt;
+      }
+    });
+
+    // Filter chips
+    const filtersEl = document.getElementById("lifeFilters");
+    filtersEl.innerHTML = "";
+    const categories = [...new Set(Object.values(grouped).map(i => i.category))];
+    const allChip = document.createElement("button");
+    allChip.className = "chip-filter" + (activeLifeFilter === "all" ? " active" : "");
+    allChip.dataset.filter = "all";
+    allChip.textContent = t("inv_all");
+    allChip.addEventListener("click", () => { activeLifeFilter = "all"; renderLife(); });
+    filtersEl.appendChild(allChip);
+    categories.forEach(cat => {
+      const chip = document.createElement("button");
+      chip.className = "chip-filter" + (activeLifeFilter === cat ? " active" : "");
+      chip.dataset.filter = cat;
+      chip.textContent = cat;
+      chip.addEventListener("click", () => { activeLifeFilter = cat; renderLife(); });
+      filtersEl.appendChild(chip);
+    });
+
+    let items = Object.values(grouped);
+    if (activeLifeFilter !== "all") {
+      items = items.filter(item => item.category === activeLifeFilter);
+    }
+
+    items.forEach(item => {
+      const invItem = inventory.find(i => i.id === item.itemId);
+      const isConsumable = invItem && invItem.consumable && invItem.statEffects && invItem.statEffects.length > 0;
+      const itemDeleted = !invItem;
+
+      const card = document.createElement("div");
+      card.className = "life-card" + (isConsumable ? " consumable" : "") + (itemDeleted ? " item-deleted" : "");
+
+      // Consumable badge
+      if (isConsumable) {
+        const badge = document.createElement("div");
+        badge.className = "life-card-badge";
+        badge.textContent = t("invModal_consumable");
+        card.appendChild(badge);
+      }
+
+      // Deleted from store badge
+      if (itemDeleted) {
+        const badge = document.createElement("div");
+        badge.className = "life-card-badge";
+        badge.style.background = "var(--danger)";
+        badge.textContent = t("life_itemDeleted");
+        card.appendChild(badge);
+      }
+
+      if (item.image) {
+        const img = document.createElement("img");
+        img.className = "life-card-img";
+        img.src = item.image;
+        img.alt = item.name;
+        card.appendChild(img);
+      } else {
+        const noImg = document.createElement("div");
+        noImg.className = "life-card-noimg";
+        noImg.textContent = isConsumable ? "\u2728" : "\u2728";
+        card.appendChild(noImg);
+      }
+
+      const body = document.createElement("div");
+      body.className = "life-card-body";
+
+      const name = document.createElement("div");
+      name.className = "life-card-name";
+      name.textContent = item.name;
+      body.appendChild(name);
+
+      const price = document.createElement("div");
+      price.className = "life-card-price";
+      price.textContent = (item.totalPts || item.price) + " pts";
+      body.appendChild(price);
+
+      if (item.selectedAccessories && item.selectedAccessories.length > 0) {
+        const accInfo = document.createElement("div");
+        accInfo.className = "life-card-qty";
+        accInfo.textContent = `${item.selectedAccessories.length} accessory`;
+        body.appendChild(accInfo);
+      }
+
+      const qty = document.createElement("div");
+      qty.className = "life-card-qty";
+      qty.textContent = `${t("life_acquired")}: ${item.qty}`;
+      body.appendChild(qty);
+
+      const date = document.createElement("div");
+      date.className = "life-card-date";
+      const d = new Date(item.lastRedeemed);
+      date.textContent = t("life_date")(d.toLocaleDateString());
+      body.appendChild(date);
+
+      // Stat effects preview for consumables
+      if (isConsumable) {
+        const effectsDiv = document.createElement("div");
+        effectsDiv.className = "life-card-effects";
+        const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
+        invItem.statEffects.forEach(eff => {
+          const tag = document.createElement("span");
+          tag.className = "life-card-effect-tag " + (eff.amount >= 0 ? "positive" : "negative");
+          tag.textContent = `${eff.amount > 0 ? "+" : ""}${eff.amount} ${statLabels[eff.stat] || eff.stat}`;
+          effectsDiv.appendChild(tag);
+        });
+        body.appendChild(effectsDiv);
+      }
+
+      // Use button for consumable items
+      if (isConsumable && item.qty > 0) {
+        const useArea = document.createElement("div");
+        useArea.className = "life-card-use";
+        const useBtn = document.createElement("button");
+        useBtn.className = "btn btn-primary btn-small";
+        useBtn.textContent = t("life_use");
+        useBtn.addEventListener("click", () => useItem(item, card));
+        useArea.appendChild(useBtn);
+        body.appendChild(useArea);
+      }
+
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
   }
-
-  // Group by item
-  const grouped = {};
-  redeemed.forEach(r => {
-    if (!grouped[r.itemId]) {
-      grouped[r.itemId] = { ...r, qty: 0, lastRedeemed: r.redeemedAt };
-    }
-    grouped[r.itemId].qty++;
-    if (r.redeemedAt > grouped[r.itemId].lastRedeemed) {
-      grouped[r.itemId].lastRedeemed = r.redeemedAt;
-    }
-  });
-
-  // Filter chips
-  const filtersEl = document.getElementById("lifeFilters");
-  filtersEl.innerHTML = "";
-  const categories = [...new Set(Object.values(grouped).map(i => i.category))];
-  const allChip = document.createElement("button");
-  allChip.className = "chip-filter" + (activeLifeFilter === "all" ? " active" : "");
-  allChip.dataset.filter = "all";
-  allChip.textContent = t("inv_all");
-  allChip.addEventListener("click", () => { activeLifeFilter = "all"; renderLife(); });
-  filtersEl.appendChild(allChip);
-  categories.forEach(cat => {
-    const chip = document.createElement("button");
-    chip.className = "chip-filter" + (activeLifeFilter === cat ? " active" : "");
-    chip.dataset.filter = cat;
-    chip.textContent = cat;
-    chip.addEventListener("click", () => { activeLifeFilter = cat; renderLife(); });
-    filtersEl.appendChild(chip);
-  });
-
-  let items = Object.values(grouped);
-  if (activeLifeFilter !== "all") {
-    items = items.filter(item => item.category === activeLifeFilter);
-  }
-
-  items.forEach(item => {
-    const invItem = inventory.find(i => i.id === item.itemId);
-    const isConsumable = invItem && invItem.consumable && invItem.statEffects && invItem.statEffects.length > 0;
-    const itemDeleted = !invItem;
-
-    const card = document.createElement("div");
-    card.className = "life-card" + (isConsumable ? " consumable" : "") + (itemDeleted ? " item-deleted" : "");
-
-    // Consumable badge
-    if (isConsumable) {
-      const badge = document.createElement("div");
-      badge.className = "life-card-badge";
-      badge.textContent = t("invModal_consumable");
-      card.appendChild(badge);
-    }
-
-    // Deleted from store badge
-    if (itemDeleted) {
-      const badge = document.createElement("div");
-      badge.className = "life-card-badge";
-      badge.style.background = "var(--danger)";
-      badge.textContent = t("life_itemDeleted");
-      card.appendChild(badge);
-    }
-
-    if (item.image) {
-      const img = document.createElement("img");
-      img.className = "life-card-img";
-      img.src = item.image;
-      img.alt = item.name;
-      card.appendChild(img);
-    } else {
-      const noImg = document.createElement("div");
-      noImg.className = "life-card-noimg";
-      noImg.textContent = isConsumable ? "\u2728" : "\u2728";
-      card.appendChild(noImg);
-    }
-
-    const body = document.createElement("div");
-    body.className = "life-card-body";
-
-    const name = document.createElement("div");
-    name.className = "life-card-name";
-    name.textContent = item.name;
-    body.appendChild(name);
-
-    const price = document.createElement("div");
-    price.className = "life-card-price";
-    price.textContent = (item.totalPts || item.price) + " pts";
-    body.appendChild(price);
-
-    if (item.selectedAccessories && item.selectedAccessories.length > 0) {
-      const accInfo = document.createElement("div");
-      accInfo.className = "life-card-qty";
-      accInfo.textContent = `${item.selectedAccessories.length} accessory`;
-      body.appendChild(accInfo);
-    }
-
-    const qty = document.createElement("div");
-    qty.className = "life-card-qty";
-    qty.textContent = `${t("life_acquired")}: ${item.qty}`;
-    body.appendChild(qty);
-
-    const date = document.createElement("div");
-    date.className = "life-card-date";
-    const d = new Date(item.lastRedeemed);
-    date.textContent = t("life_date")(d.toLocaleDateString());
-    body.appendChild(date);
-
-    // Stat effects preview for consumables
-    if (isConsumable) {
-      const effectsDiv = document.createElement("div");
-      effectsDiv.className = "life-card-effects";
-      const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
-      invItem.statEffects.forEach(eff => {
-        const tag = document.createElement("span");
-        tag.className = "life-card-effect-tag " + (eff.amount >= 0 ? "positive" : "negative");
-        tag.textContent = `${eff.amount > 0 ? "+" : ""}${eff.amount} ${statLabels[eff.stat] || eff.stat}`;
-        effectsDiv.appendChild(tag);
-      });
-      body.appendChild(effectsDiv);
-    }
-
-    // Use button for consumable items
-    if (isConsumable && item.qty > 0) {
-      const useArea = document.createElement("div");
-      useArea.className = "life-card-use";
-      const useBtn = document.createElement("button");
-      useBtn.className = "btn btn-primary btn-small";
-      useBtn.textContent = t("life_use");
-      useBtn.addEventListener("click", () => useItem(item, card));
-      useArea.appendChild(useBtn);
-      body.appendChild(useArea);
-    }
-
-    card.appendChild(body);
-    grid.appendChild(card);
-  });
 }
 
 function useItem(redeemedItem, cardEl) {
@@ -214,6 +213,7 @@ function useItem(redeemedItem, cardEl) {
   // Short delay then re-render
   setTimeout(() => {
     renderLife();
+    renderLifeStats();
     renderPointsSummary();
   }, 1200);
 }
