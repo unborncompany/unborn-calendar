@@ -636,6 +636,18 @@ body {
   background: rgba(100, 200, 180, 0.5);
 }
 
+.dash-entry-todos-scroll {
+  max-height: 150px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 200, 180, 0.3) transparent;
+}
+
+.dash-entry-locked {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
 .dash-todo-item {
   display: flex;
   align-items: center;
