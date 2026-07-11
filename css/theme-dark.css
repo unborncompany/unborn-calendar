@@ -67,10 +67,23 @@
 }
 
 [data-theme="dark"] .dash-greeting h2 {
-  background: linear-gradient(135deg, #e8e8f0 0%, #6ee7b7 100%);
+  background: linear-gradient(135deg, #e8e8f0 0%, #6ee7b7 50%, #fbbf24 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+[data-theme="dark"] .dash-greeting::after {
+  opacity: 0.5;
+}
+[data-theme="dark"] .dash-greeting .subtle:first-of-type {
+  color: #e8e8f0;
+}
+[data-theme="dark"] .dash-day-title {
+  color: #e8e8f0;
+}
+[data-theme="dark"] .empty-state {
+  background: var(--paper-card);
+  border-color: #33334d;
 }
 
 [data-theme="dark"] .cal-chip {
