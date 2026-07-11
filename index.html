@@ -317,7 +317,52 @@
 
   <!-- Life -->
   <main class="tab-panel active" id="panel-life">
-    <div class="panel-head">
+    <!-- Dashboard -->
+    <div class="dash-greeting">
+      <h2 id="dashGreeting"></h2>
+      <p class="subtle" id="dashTaskMsg"></p>
+      <p class="subtle" id="dashExpectedPts"></p>
+    </div>
+    <div class="dash-two-col">
+      <div class="dash-main">
+        <div class="dash-week-cal" id="dashWeekCal"></div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
+          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
+          <div id="dashTodayList" class="dashboard-list"></div>
+        </div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
+          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
+          <div id="dashTomorrowList" class="dashboard-list"></div>
+        </div>
+      </div>
+      <div class="dash-side">
+        <div class="panel-head dash-secondary-head">
+          <div>
+            <h2>Secondary Tasks</h2>
+            <p class="subtle" id="secSummary">No tasks yet.</p>
+          </div>
+          <button class="btn btn-primary btn-small" id="secAddBtn">+ Add</button>
+        </div>
+        <div class="dash-sec-today" id="secTodaySection" style="display:none">
+          <div class="dash-sec-label">Today</div>
+          <div id="secTodayList" class="sec-task-list"></div>
+        </div>
+        <div class="dash-sec-tomorrow">
+          <div class="dash-sec-label">Tomorrow</div>
+          <div id="secTaskList" class="sec-task-list"></div>
+        </div>
+        <div class="sec-input-area" id="secInputArea" style="display:none">
+          <input type="text" id="secTaskInput" placeholder="e.g. Water plants" maxlength="100">
+          <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
+          <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Life -->
+    <div class="panel-head" style="margin-top:24px">
       <div>
         <h2 id="lifeTitle">Life</h2>
         <p class="subtle" id="lifeSummary">Your acquired items from the store.</p>
@@ -383,50 +428,6 @@
     </div>
     <div class="filter-group" id="lifeFilters"></div>
     <div class="life-grid" id="lifeGrid"></div>
-
-    <!-- Tasks (from dashboard) -->
-    <div class="dash-greeting" style="margin-top:24px">
-      <h2 id="dashGreeting"></h2>
-      <p class="subtle" id="dashTaskMsg"></p>
-      <p class="subtle" id="dashExpectedPts"></p>
-    </div>
-    <div class="dash-two-col">
-      <div class="dash-main">
-        <div class="dash-week-cal" id="dashWeekCal"></div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
-          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
-          <div id="dashTodayList" class="dashboard-list"></div>
-        </div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
-          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
-          <div id="dashTomorrowList" class="dashboard-list"></div>
-        </div>
-      </div>
-      <div class="dash-side">
-        <div class="panel-head dash-secondary-head">
-          <div>
-            <h2>Secondary Tasks</h2>
-            <p class="subtle" id="secSummary">No tasks yet.</p>
-          </div>
-          <button class="btn btn-primary btn-small" id="secAddBtn">+ Add</button>
-        </div>
-        <div class="dash-sec-today" id="secTodaySection" style="display:none">
-          <div class="dash-sec-label">Today</div>
-          <div id="secTodayList" class="sec-task-list"></div>
-        </div>
-        <div class="dash-sec-tomorrow">
-          <div class="dash-sec-label">Tomorrow</div>
-          <div id="secTaskList" class="sec-task-list"></div>
-        </div>
-        <div class="sec-input-area" id="secInputArea" style="display:none">
-          <input type="text" id="secTaskInput" placeholder="e.g. Water plants" maxlength="100">
-          <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
-          <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
-        </div>
-      </div>
-    </div>
   </main>
 
 </div>
