@@ -145,3 +145,19 @@ if (inventory.length === 0) {
     })
     .catch(() => { refreshAll(); });
 }
+
+/* ============ Service Worker update detection ============ */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (!reg) return;
+    reg.addEventListener("updatefound", () => {
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          showToast(t("toast_swUpdate"));
+        }
+      });
+    });
+  });
+}

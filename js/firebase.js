@@ -239,6 +239,40 @@ function showSyncStatus(status) {
   else if (status === "saving") { label.textContent = "Saving..."; }
   else if (status === "loading") { label.textContent = "Loading..."; }
   else if (status === "error") { label.textContent = "Sync error"; }
+  else if (status === "offline") { label.textContent = t("sync_offline"); }
+}
+
+/* ============ Online / Offline indicator ============ */
+let _lastFirestoreStatus = null;
+
+function setOnlineStatus() {
+  const el = document.getElementById("syncStatus");
+  if (!navigator.onLine) {
+    _lastFirestoreStatus = el && el.classList.contains("synced") ? "synced" : _lastFirestoreStatus;
+    showSyncStatus("offline");
+  } else if (_lastFirestoreStatus) {
+    showSyncStatus(_lastFirestoreStatus);
+    _lastFirestoreStatus = null;
+  }
+}
+
+window.addEventListener("online", () => {
+  setOnlineStatus();
+  /* Re-trigger cloud sync if user is signed in */
+  if (currentUser) {
+    loadFromCloud().then(() => subscribeToCloud());
+  }
+});
+
+window.addEventListener("offline", () => {
+  _lastFirestoreStatus = "synced";
+  showSyncStatus("offline");
+});
+
+/* Set initial state on load */
+if (!navigator.onLine) {
+  /* Defer slightly so other init code can run first */
+  setTimeout(() => { if (!navigator.onLine) showSyncStatus("offline"); }, 500);
 }
 
 // Auth button handlers

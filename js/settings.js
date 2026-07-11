@@ -297,6 +297,11 @@ function applyTranslations() {
   // Settings — Cloud Sync
   document.getElementById("settingsCloudTitle").textContent = t("settings_cloud");
   document.getElementById("settingsCloudHint").textContent = t("settings_cloudHint");
+  // Settings — Install App
+  document.getElementById("settingsInstallTitle").textContent = t("settings_installTitle");
+  document.getElementById("settingsInstallHint").textContent = t("settings_installHint");
+  document.getElementById("installAppBtn").textContent = t("settings_installBtn");
+  document.getElementById("installIOSHint").textContent = t("settings_installIOSHint");
   // Store
   document.getElementById("storeTitle").textContent = t("store_title");
   document.getElementById("storeSummary").textContent = t("store_summary");
@@ -491,4 +496,58 @@ function refreshAll() {
   }
   renderPointsSummary();
   renderLife();
+}
+
+/* ============ Install App ============ */
+let deferredInstallPrompt = null;
+const installSection = document.getElementById("installSection");
+const installBtn = document.getElementById("installAppBtn");
+const installIOSHint = document.getElementById("installIOSHint");
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function isIOSSafari() {
+  return navigator.standalone === undefined && /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function hideInstallSection() {
+  if (installSection) installSection.style.display = "none";
+}
+
+if (isStandalone()) {
+  hideInstallSection();
+} else if (isIOSSafari()) {
+  installBtn.style.display = "none";
+  installIOSHint.style.display = "";
+} else {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = "";
+  });
+
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === "accepted") {
+      installBtn.disabled = true;
+      installBtn.textContent = t("settings_installBtn") + " ✓";
+    }
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    hideInstallSection();
+  });
+
+  /* If the browser doesn't fire beforeinstallprompt after a delay, hide the section */
+  setTimeout(() => {
+    if (!deferredInstallPrompt && !isStandalone()) {
+      hideInstallSection();
+    }
+  }, 10000);
 }
