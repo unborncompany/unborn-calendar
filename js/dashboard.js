@@ -401,6 +401,11 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false) {
           qty.textContent = `${newDone}/${entry.todos.length} ${t("dash_done")}`;
           const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
           entry.pendingPoints = newAllDone;
+          if (newAllDone) {
+            saveEntries();
+            renderDashboard();
+            return;
+          }
           const newStatus = getStatus(entry);
           card.className = "life-card life-task-card" + (newStatus === "completed" ? " completed" : "");
           renderPointsSummary();
@@ -460,6 +465,10 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false) {
             header.querySelector(".dash-entry-progress").textContent = `${newDone}/${entry.todos.length} ${t("dash_done")}`;
             const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
             entry.pendingPoints = newAllDone;
+            if (newAllDone) {
+              renderDashboard();
+              return;
+            }
             wrap.className = `dash-entry-wrap status-${getStatus(entry)}`;
             renderPointsSummary();
             renderLifeStats();
