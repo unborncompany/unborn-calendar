@@ -1,624 +1,628 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Lessons Tracker - Private English Lessons</title>
-    <link rel="stylesheet" href="styles.css">
-    <style id="colVisibilityStyle"></style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<title>Game of Life — Daily Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/buttons.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/calendar.css">
+<link rel="stylesheet" href="css/entries-modals.css">
+<link rel="stylesheet" href="css/inventory.css">
+<link rel="stylesheet" href="css/store.css">
+<link rel="stylesheet" href="css/life.css">
+<link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/toast.css">
+<link rel="stylesheet" href="css/theme-dark.css">
+<link rel="stylesheet" href="css/responsive.css">
+<!--
+  ======================================================
+  FIREBASE SETUP INSTRUCTIONS
+  ======================================================
+  1. Go to https://console.firebase.google.com/
+  2. Create a new project (or use an existing one)
+  3. Enable Authentication > Google sign-in provider
+  4. Enable Cloud Firestore (start in test mode)
+  5. Go to Project Settings > General > Your apps > Web app
+  6. Copy the firebaseConfig object and paste it below
+  7. Copy the script tags below and paste them after this comment
+  ======================================================
+-->
+<!-- Firebase SDK v10+ (modular) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js";
 
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e3a8a">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+  const firebaseConfig = {
+    apiKey: "AIzaSyBAI7mY1ETH0p0JN0s_rl5VH7XrCbsshA4",
+    authDomain: "unborn-calendar.firebaseapp.com",
+    projectId: "unborn-calendar",
+    storageBucket: "unborn-calendar.firebasestorage.app",
+    messagingSenderId: "735526332135",
+    appId: "1:735526332135:web:2d24b6d89d32621dbf2442",
+    measurementId: "G-90F036RLQ1"
+  };
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+  const analytics = getAnalytics(app);
+
+  window.__firebase = { app, auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc, onSnapshot, GoogleAuthProvider };
+
+  window.dispatchEvent(new Event("firebase-ready"));
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(function(err) {
+      console.warn("SW registration failed:", err);
+    });
+  }
+</script>
 </head>
 <body>
-    <!-- Login gate: covers the whole app until Firebase Auth confirms a signed-in user.
-         Visible by default (no JS needed to show it); cloudSync.js hides it and reveals
-         #appContainer once onAuthStateChanged fires with a signed-in user. -->
-    <div id="loginGate" class="login-gate">
-        <div class="login-box">
-            <h1>🏫🗽 English Lessons</h1>
-            <p class="hint" id="authCheckingMsg">Checking session…</p>
 
-            <div id="loginFormArea" style="display:none;">
-                <p class="hint">Sign in to access your student data.</p>
+<div class="app">
 
-                <label class="field-label" for="loginEmail">Email</label>
-                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="username">
-
-                <label class="field-label" for="loginPassword">Password</label>
-                <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){firebaseSignInEmail();}">
-
-                <div id="loginError" class="login-error" style="display:none;"></div>
-
-                <button class="btn" id="loginSubmitBtn" onclick="firebaseSignInEmail()" style="width:100%; margin-top:14px;">Sign In</button>
-
-                <div style="margin:18px 0 0 0; border-top:1px solid var(--color-border); padding-top:16px;">
-                    <p class="hint" style="text-align:center; margin-bottom:10px;">Offline access (no internet needed)</p>
-                    <label class="field-label" for="offlineUsername">Username</label>
-                    <input type="text" id="offlineUsername" placeholder="admin" autocomplete="username">
-                    <label class="field-label" for="offlinePassword">Password</label>
-                    <input type="password" id="offlinePassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){offlineAdminLogin();}">
-                    <div id="offlineLoginError" class="login-error" style="display:none;"></div>
-                    <button class="btn btn-outline" onclick="offlineAdminLogin()" style="width:100%; margin-top:12px;">Login Offline</button>
-                </div>
-            </div>
-        </div>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">§</span>
+      <h1>Game of Life</h1>
     </div>
-
-    <div class="container" id="appContainer" style="display:none;">
-        <header>
-            <h1>🏫🗽 English Lessons</h1>
-            <div class="auth-area" id="authArea">
-                <div id="authSignedOut">
-                    <button class="btn btn-outline btn-google" onclick="firebaseSignIn()">
-                        <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right:6px; vertical-align:middle;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                        Sign in with Google
-                    </button>
-                </div>
-                <div id="authSignedIn" style="display:none;">
-                    <img id="authUserPhoto" class="auth-avatar" src="" alt="">
-                    <span id="authUserName" class="auth-name"></span>
-                    <button class="btn btn-small btn-outline" onclick="firebaseSignOut()">Sign out</button>
-                </div>
-                <span id="authStatus" class="auth-status"></span>
-            </div>
-            <div id="liveClock" class="live-clock"></div>
-            <div class="goal-box">
-    <strong id="goalLabel">$0 / $5,000 this year</strong>
-    <div class="goal-bar-track"><div class="goal-bar-fill" id="goalBarFill" style="width:0%"></div></div>
-</div>
-        </header>
-
-        <div class="view-tabs">
-            <button class="tab-btn" id="tabDashboardBtn" onclick="switchView('dashboard')">🏠 Dashboard</button>
-            <button class="tab-btn" id="tabListBtn" onclick="switchView('list')">📋 Students</button>
-            <button class="tab-btn" id="tabCalendarBtn" onclick="switchView('calendar')">📅 Calendar</button>
-<button class="tab-btn" id="tabProgressBtn" onclick="switchView('progress')">📈 Students Progress</button>
-            <button class="tab-btn" id="tabGraphBtn" onclick="switchView('graph')">📊 Graph</button>
-            <button class="tab-btn" id="tabSettingsBtn" onclick="switchView('settings')">⚙️ Settings</button>
-            <button class="tab-btn" id="tabWhiteboardBtn" onclick="switchView('whiteboard')">🖊️ Whiteboard</button>
-        </div>
-
-        <div id="dashboardView" style="padding: 20px 30px 30px 30px;">
-            <div id="pendingBookingRequestsWrap" style="display:none; margin-bottom:24px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-                    <h2 style="margin:0; color:#1e3a8a;">📩 Pending Booking Requests</h2>
-                    <button class="btn btn-small btn-outline" onclick="renderPendingBookingRequests()" title="Check for new requests now">🔄 Refresh</button>
-                </div>
-                <p class="hint">Requests submitted from your booking page. Confirm to add the student and lock in the slot, or reject to leave it open.</p>
-                <div id="pendingBookingRequestsList"></div>
-            </div>
-            <div id="dashboardContent"></div>
-        </div>
-
-        <div id="listView" style="display:none;">
-        <div class="controls">
-            <button class="btn" onclick="showAddModal()">+ Add New Student</button>
-            <input type="text" id="searchBox" placeholder="🔍 Search students..." oninput="renderTable()">
-            <div class="spacer"></div>
-            <button class="btn btn-outline" onclick="showHistoryModal()">📜 Student History</button>
-            <button class="btn btn-outline" onclick="showPendingPaymentsModal()">⏳ Pending Payments</button>
-        </div>
-
-        <div class="summary">
-            <div class="stat">
-                <div class="stat-value" id="totalHoursMonth">0</div>
-                <div class="stat-label">Hours This Month</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="totalRevenueMonth">$0</div>
-                <div class="stat-label">Revenue This Month</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="totalRevenueYear">$0</div>
-                <div class="stat-label">Revenue This Year</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="pendingLessons">0</div>
-                <div class="stat-label">Pending Lessons</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value pending-value" id="pendingPayments">$0</div>
-                <div class="stat-label">Pending Payments</div>
-            </div>
-            <div class="stat">
-                <div class="stat-value" id="totalStudents">0</div>
-                <div class="stat-label">Total Students</div>
-            </div>
-        </div>
-
-        <div class="table-wrap">
-        <table id="studentTable">
-            <thead>
-                <tr>
-                    <th data-col="name">Student Name</th>
-                    <th data-col="remaining">Remaining</th>
-                    <th data-col="next" id="thNext" onclick="sortBy('next')" style="cursor:pointer;">Next Scheduled ⇅</th>
-                    <th data-col="status" id="thStatus" onclick="sortBy('status')" style="cursor:pointer;">Status ⇅</th>
-                    <th data-col="actions">Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        </div>
-        </div>
-
-        <div id="calendarView" style="display:none;">
-            <div class="calendar-controls">
-                <button class="btn btn-small btn-outline" onclick="changeCalendarMonth(-1)">‹ Prev</button>
-                <h2 id="calendarMonthLabel">Month Year</h2>
-                <button class="btn btn-small btn-outline" onclick="changeCalendarMonth(1)">Next ›</button>
-                <button class="btn btn-small btn-outline" onclick="goToCurrentMonth()">Today</button>
-                <button class="btn btn-small btn-outline" id="calStyleToggle" onclick="toggleCalendarStyle()" title="Toggle calendar view">📋</button>
-            </div>
-            <div class="calendar-legend">
-                <span><span class="legend-dot" style="background:#dbeafe;"></span>Lesson delivered</span>
-                <span><span class="legend-dot" style="background:#d1fae5;"></span>Payment received</span>
-                <span><span class="legend-dot" style="background:#fef3c7;"></span>Payment pending</span>
-                <span><span class="legend-dot" style="background:#ede9fe;"></span>Next scheduled</span>
-            </div>
-            <div class="calendar-weekdays" id="calendarWeekdays">
-                <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
-            </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
-        </div>
-
-        <div id="progressView" style="display:none; padding: 20px 30px 30px 30px;">
-            <div class="progress-layout">
-                <div id="progressStudentList" class="progress-sidebar"></div>
-                <div id="progressDetail" class="progress-detail">
-                    <p class="hint">Select a student from the list to view their vocabulary and progress log.</p>
-                </div>
-            </div>
-        </div>
-
-<div id="graphView" style="display:none; padding: 20px 30px 30px 30px;">
-    <h3 style="margin-top:0; color:var(--color-heading);">Revenue Trend — <span id="graphYearLabel"></span></h3>
-    <p class="hint">Monthly revenue from received payments this year. Pending payments aren't counted until marked received.</p>
-    <div id="graphContent" class="graph-content"></div>
-</div>
-
-<div id="settingsView" style="display:none; padding: 20px 30px 30px 30px;">
-    <h3 style="margin-top:0; color:var(--color-heading);">Visible Columns</h3>
-    <p class="hint">Choose which columns show up in the Students table.</p>
-    <div id="columnSettingsList" class="column-settings-grid"></div>
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Currency Settings</h3>
-    <label class="field-label">Default Currency</label>
-    <select id="defaultCurrencySelect" style="width:200px;">
-        <option value="USD">USD (default)</option>
-        <option value="CLP">CLP (Chilean Peso)</option>
-    </select>
-    <div class="hint">Choose which currency appears as the main value in tables and panels.</div>
-
-<label class="field-label" style="margin-top:20px;">USD to CLP Exchange Rate</label>
-    <input type="number" id="exchangeRateInput" step="1" style="width:200px;" placeholder="e.g. 950">
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Privacy</h3>
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="privacyModeToggle" style="width:auto; margin:0;" onchange="togglePrivacyMode(this.checked)">
-        Hide monetary values (shows **** instead of amounts)
-    </label>
-    <div class="hint">Hides amounts in the Students list, Calendar, and Students Progress tabs — handy when screen-sharing during a lesson. Applies instantly.</div>
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Appearance</h3>
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="darkModeToggle" style="width:auto; margin:0;" onchange="toggleDarkMode(this.checked)">
-        Dark mode
-    </label>
-    <div class="hint">Switch between light and dark appearance. Applies instantly.</div>
-
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
-        <input type="checkbox" id="hideWeekendsToggle" style="width:auto; margin:0;" onchange="toggleHideWeekends(this.checked)">
-        Hide weekends in calendar
-    </label>
-    <div class="hint">Hides Saturday and Sunday columns in the calendar grid and list views. Applies instantly.</div>
-
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px;">
-    <input type="checkbox" id="hideWeekendsBookingToggle" style="width:auto; margin:0;" onchange="toggleHideWeekendsBooking(this.checked)">
-    Hide weekends in booking page
-</label>
-<div class="hint">Hides Saturday/Sunday columns in the public student booking page (Mon-Fri only). Applies instantly.</div>
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Yearly Revenue Goal</h3>
-    <label class="field-label">Target Revenue This Year</label>
-    <input type="number" id="yearlyGoalInput" style="width:200px;" placeholder="5000">
-    <div class="hint" id="goalHint">Amount in the selected currency.</div>
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Student Booking Page</h3>
-    <p class="hint">Share this link with potential students. It shows your weekly availability (no student names — just "available" or "unavailable") and lets them request a lesson slot. Requests appear on your Dashboard as "Pending Booking Requests" for you to confirm or reject.</p>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <input type="text" id="bookingLinkInput" readonly style="flex:1; min-width:220px; margin:0;">
-        <button class="btn btn-outline" onclick="copyBookingLink()">📋 Copy Link</button>
-        <a class="btn btn-outline" href="booking.html" target="_blank" style="text-decoration:none; display:inline-block;">↗ Open</a>
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="life" role="tab">Life</button>
+      <button class="tab-btn" data-tab="calendar" role="tab">Calendar</button>
+      <button class="tab-btn" data-tab="store" role="tab">Store</button>
+      <button class="tab-btn" data-tab="settings" role="tab">Settings</button>
+    </nav>
+    <button class="btn btn-primary" id="quickAddBtn">+ New entry</button>
+    <button class="btn btn-ghost btn-small" id="quickSaveBtn" title="Quick save to chosen folder">&#128190; Quick save</button>
+    <div class="auth-bar" id="authBar">
+      <button class="btn btn-google" id="googleSignInBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Sign in
+      </button>
+      <div class="auth-user" id="authUser" style="display:none">
+        <img class="auth-avatar" id="authAvatar" src="" alt="avatar">
+        <span class="auth-name" id="authName"></span>
+        <button class="btn btn-ghost btn-small" id="googleSignOutBtn" title="Sign out">&#x2190; Sign out</button>
+      </div>
     </div>
-    <div class="hint">Requires being signed in with Google (top right) so bookings sync — and requires Firestore rules that allow public read of availability and public creation of booking requests. See the comment at the top of cloudSync.js for the suggested rules.</div>
-
-    <h4 style="margin:22px 0 4px 0; color:var(--color-heading);">Booking Hours</h4>
-    <p class="hint">Click blocks to open or block them for student booking — green is open, gray is blocked (e.g. for other commitments). This is separate from actual booked lessons, which always show as unavailable regardless of these settings.</p>
-    <div id="bookingHoursGrid" class="booking-hours-grid"></div>
-    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-small btn-outline" onclick="setAllBookingHours(true)">Open All</button>
-        <button class="btn btn-small btn-outline" onclick="setAllBookingHours(false)">Block All</button>
+    <div class="sync-status" id="syncStatus" style="display:none">
+      <span class="sync-dot"></span>
+      <span class="sync-label">Synced</span>
     </div>
-    <div class="hint" style="margin-top:6px;">Changes here save instantly — no need to click "Save All Settings" below.</div>
+  </header>
 
-    <h4 style="margin:24px 0 4px 0; color:var(--color-heading);">Morning / Afternoon Split</h4>
-    <p class="hint">Groups the booking page into expandable "Morning" and "Afternoon" sections that start collapsed — visitors tap to open the one they want. A gap between the two ranges (e.g. a lunch break) is simply left off the booking page.</p>
-    <div style="display:flex; gap:24px; flex-wrap:wrap;">
-        <div>
-            <label class="field-label">Morning</label>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <input type="time" id="morningStartInput" style="width:130px;">
-                <span>to</span>
-                <input type="time" id="morningEndInput" style="width:130px;">
-            </div>
+  <!-- Clock -->
+  <div class="clock-bar" id="clockBar">
+    <span class="clock-time" id="clockTime"></span>
+    <span class="clock-date" id="clockDate"></span>
+  </div>
+
+  <!-- Calendar -->
+  <main class="tab-panel" id="panel-calendar">
+    <div class="panel-head">
+      <div class="cal-nav">
+        <button class="icon-btn" id="prevMonth">&#8592;</button>
+        <h2 id="monthLabel">Month Year</h2>
+        <button class="icon-btn" id="nextMonth">&#8594;</button>
+        <button class="btn btn-ghost" id="todayBtn">Today</button>
+        <div class="cal-view-toggle">
+          <button class="cal-view-btn active" id="calViewGridBtn" title="Grid view">&#9638;</button>
+          <button class="cal-view-btn" id="calViewListBtn" title="List view">&#9776;</button>
         </div>
-        <div>
-            <label class="field-label">Afternoon</label>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <input type="time" id="afternoonStartInput" style="width:130px;">
-                <span>to</span>
-                <input type="time" id="afternoonEndInput" style="width:130px;">
-            </div>
-        </div>
+      </div>
     </div>
-    <div class="hint" style="margin-top:6px;">Saved with "Save All Settings" below.</div>
-
-    <h3 style="margin-top:30px; color:var(--color-heading);">Backup</h3>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
-        <button class="btn btn-outline" onclick="exportBackup()" title="In Chrome/Edge over https or localhost, this lets you pick a save folder once and remembers it next time. Opened as a local file:// page, or in other browsers, it saves to your browser's default Downloads folder instead.">⬇️ Export Backup (JSON)</button>
-        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">⬆️ Import Backup</button>
-        <input type="file" id="fileInput" accept=".json" onchange="importBackup(event)">
+    <div class="cal-weekdays">
+      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
     </div>
-    <div class="hint">Export saves all student data, settings, and preferences. Whiteboards are not included.</div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-list" id="calList" style="display:none"></div>
+  </main>
 
-    <h3 style="margin-top:30px; color:var(--color-heading);">Install App</h3>
-    <button class="btn" id="installAppBtn" style="display:none;" onclick="installApp()">📲 Install App</button>
-    <div class="hint">Install to your device for offline access and a native app-like experience.</div>
-    <div class="hint" id="iosInstallHint" style="display:none;">On iPhone/iPad: use the Share button → Add to Home Screen.</div>
-
-    <div style="margin-top:15px;">
-        <button class="btn" onclick="saveSettings()">Save All Settings</button>
-    </div>
-</div>
-
-<div id="whiteboardView" style="display:none; padding: 20px 30px 30px 30px;">
-    <div class="wb-toolbar">
-        <label class="wb-board-label">Board
-            <select id="wbBoardSelect" onchange="switchWbBoard(this.value)"></select>
+  <!-- Inventory -->
+  <main class="tab-panel" id="panel-inventory">
+    <div class="panel-head">
+      <div>
+        <h2>Inventory</h2>
+        <p class="subtle" id="invSummary">No items tracked yet.</p>
+      </div>
+      <div class="inv-actions-row">
+        <button class="btn btn-primary" id="invAddBtn">+ Add item</button>
+        <button type="button" class="btn btn-ghost btn-small" id="invExportBtn">Export backup</button>
+        <label class="btn btn-ghost btn-small" style="cursor:pointer">
+          <span id="invImportLabel">Import backup</span>
+          <input type="file" id="invImportInput" accept=".json" style="display:none" multiple>
         </label>
+      </div>
+    </div>
+    <div class="inv-value-bar" id="invValueBar"></div>
+    <div class="filter-group" id="invFilters">
+      <button class="chip-filter active" data-filter="all">All</button>
+    </div>
+    <div class="inv-table-head">
+      <span class="inv-col-name">Item</span>
+      <span class="inv-col-price">Price</span>
+      <span class="inv-col-qty">Qty</span>
+      <span class="inv-col-cat">Category</span>
+    </div>
+    <div id="invList" class="inv-list"></div>
+  </main>
 
-        <div class="wb-colors">
-            <button class="wb-color-swatch active" style="background:#111827" onclick="setWbColor('#111827', this)" title="Black"></button>
-            <button class="wb-color-swatch" style="background:#dc2626" onclick="setWbColor('#dc2626', this)" title="Red"></button>
-            <button class="wb-color-swatch" style="background:#1e40af" onclick="setWbColor('#1e40af', this)" title="Blue"></button>
-            <button class="wb-color-swatch" style="background:#059669" onclick="setWbColor('#059669', this)" title="Green"></button>
-            <button class="wb-color-swatch" style="background:#f59e0b" onclick="setWbColor('#f59e0b', this)" title="Orange"></button>
+  <!-- Settings -->
+  <main class="tab-panel" id="panel-settings">
+    <div class="panel-head">
+      <div>
+        <h2>Settings</h2>
+        <p class="subtle">Configure notifications and preferences.</p>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsThemeTitle">Theme</h3>
+      <p class="subtle" id="settingsThemeHint">Choose between light and dark appearance.</p>
+      <div class="settings-sound-row">
+        <select id="themeSelect" class="lang-select">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsCalendarViewTitle">Calendar View</h3>
+      <p class="subtle" id="settingsCalendarViewHint">Choose how the calendar is displayed.</p>
+      <div class="settings-sound-row">
+        <select id="calViewSelect" class="lang-select">
+          <option value="grid">Grid</option>
+          <option value="list">Vertical List</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsLangTitle">Language</h3>
+      <p class="subtle" id="settingsLangHint">Choose the display language for the interface.</p>
+      <div class="settings-sound-row">
+        <select id="langSelect" class="lang-select">
+          <option value="en">English</option>
+          <option value="es">Espa\u00f1ol</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsProfileTitle">User Profile</h3>
+      <p class="subtle" id="settingsProfileHint">Your personal info used for greetings in the dashboard.</p>
+      <div class="settings-form">
+        <div class="settings-field">
+          <label for="userName">Name</label>
+          <input type="text" id="userName" placeholder="e.g. Martin" maxlength="50">
         </div>
-        <label class="wb-size-label">Pen size
-            <input type="range" id="wbSize" min="2" max="24" value="4" oninput="setWbSize(this.value)">
-        </label>
-        <label class="wb-size-label">Text size
-            <input type="range" id="wbFontSize" min="12" max="48" value="18" oninput="setWbFontSize(this.value)">
-        </label>
-
-        <button class="btn btn-small btn-outline" id="wbDrawBtn" onclick="startWbDrawMode()">✏️ Pen</button>
-        <button class="btn btn-small btn-outline" id="wbLineBtn" onclick="setWbShapeTool('line')">📏 Line</button>
-        <button class="btn btn-small btn-outline" id="wbRectBtn" onclick="setWbShapeTool('rect')">▭ Rectangle</button>
-        <button class="btn btn-small btn-outline" id="wbEllipseBtn" onclick="setWbShapeTool('ellipse')">⬭ Ellipse</button>
-        <button class="btn btn-small btn-outline" id="wbEraserBtn" onclick="toggleWbEraser()">🧹 Eraser</button>
-        <button class="btn btn-small btn-outline" id="wbTextBtn" onclick="toggleWbTextMode()">🔤 Add Text Box</button>
-        <button class="btn btn-small btn-outline" id="wbBgBtn" onclick="toggleWbBackground()">🌓 Dark Board</button>
-
-        <button class="btn btn-small btn-outline" id="wbUndoBtn" onclick="wbUndo()" title="Undo (Ctrl+Z)">↶ Undo</button>
-        <button class="btn btn-small btn-outline" id="wbRedoBtn" onclick="wbRedo()" title="Redo (Ctrl+Y)">↷ Redo</button>
-
-        <div class="spacer"></div>
-        <button class="btn btn-small btn-delete" onclick="clearWhiteboard()">🗑️ Clear Board</button>
+        <div class="settings-field">
+          <label for="userNickname">Nickname</label>
+          <input type="text" id="userNickname" placeholder="e.g. Marty" maxlength="50">
+        </div>
+        <div class="settings-field">
+          <label for="userPhone">Phone Number</label>
+          <input type="tel" id="userPhone" placeholder="e.g. 555-1234" maxlength="20">
+        </div>
+        <button type="button" class="btn btn-primary btn-small" id="saveProfileBtn">Save</button>
+      </div>
     </div>
-    <div id="wbBoard" class="wb-board">
-        <canvas id="wbCanvas"></canvas>
-        <div id="wbTextLayer"></div>
+    <div class="settings-section">
+      <h3 id="settingsNotifTitle">Notification Sound</h3>
+      <p class="subtle" id="settingsNotifHint">Upload an audio file to use as the alarm notification sound. Leave empty for the browser default.</p>
+      <div class="settings-sound-row">
+        <label class="btn btn-ghost btn-small" style="cursor:pointer">
+          <span id="notifChooseLabel">Choose file</span>
+          <input type="file" id="notifSoundInput" accept="audio/*" style="display:none">
+        </label>
+        <span id="notifSoundName" class="subtle">No file chosen</span>
+        <button type="button" class="btn btn-ghost btn-small" id="notifSoundTest">Test</button>
+        <button type="button" class="btn btn-ghost btn-small" id="notifSoundRemove" style="display:none;color:var(--danger);border-color:var(--danger)">Remove</button>
+      </div>
     </div>
-    <p class="hint">Draw with your mouse, finger, or stylus, or use Line / Rectangle / Ellipse for quick diagrams. Click "Add Text Box" then click the board to drop a typed text box — the Text size slider sets the size of new boxes. Copy any image (e.g. Ctrl+C on a picture) and paste it (Ctrl+V) anywhere on the board — drag the ⠿ handle to move, the ⤡ handle (bottom-right) to resize, and click × to remove. Undo/Redo (or Ctrl+Z / Ctrl+Y) undoes drawing and shapes. Use the Board dropdown to keep a separate board per student — each one saves automatically and independently in this browser.</p>
+    <div class="settings-section">
+      <h3 id="settingsSaveTitle">Save Data</h3>
+      <p class="subtle" id="settingsSaveHint">Export all app data to a file, or import from a previous backup.</p>
+      <div class="settings-sound-row">
+        <button type="button" class="btn btn-ghost btn-small" id="exportBtn">Export save file</button>
+        <label class="btn btn-ghost btn-small" style="cursor:pointer">
+          <span id="importLabel">Import save file</span>
+          <input type="file" id="importInput" accept=".json" style="display:none">
+        </label>
+      </div>
+      <div class="settings-sound-row" style="margin-top:14px">
+        <button type="button" class="btn btn-ghost btn-small" id="chooseFolderBtn">Choose save folder</button>
+        <span id="saveFolderPath" class="subtle">No folder chosen</span>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsSupplyTitle">Supply Store</h3>
+      <p class="subtle" id="settingsSupplyHint">Manage inventory items available in the store. Requires admin access.</p>
+      <div class="settings-sound-row">
+        <button type="button" class="btn btn-primary btn-small" id="supplyStoreBtn">Open inventory</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsCloudTitle">Cloud Sync</h3>
+      <p class="subtle" id="settingsCloudHint">Sign in with Google to sync your data across devices. When not signed in, all data stays local.</p>
+      <div class="settings-sound-row">
+        <div id="cloudSyncInfo" class="cloud-sync-info">
+          <span class="cloud-status-dot" id="cloudStatusDot"></span>
+          <span id="cloudStatusText">Not signed in</span>
+        </div>
+        <button type="button" class="btn btn-google btn-small" id="settingsGoogleBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+    <div class="settings-section" id="installSection">
+      <h3 id="settingsInstallTitle">Install App</h3>
+      <p class="subtle" id="settingsInstallHint">Install this app on your device for quick access.</p>
+      <div class="settings-sound-row">
+        <button type="button" class="btn btn-primary btn-small" id="installAppBtn" style="display:none">Install app</button>
+        <span id="installIOSHint" class="subtle" style="display:none"></span>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3 id="settingsResetTitle">Reset All Data</h3>
+      <p class="subtle" id="settingsResetHint">Permanently delete all entries, inventory, tasks, and settings. This cannot be undone.</p>
+      <div class="settings-sound-row">
+        <button type="button" class="btn btn-danger btn-small" id="resetAllBtn">Reset everything</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scoreboard -->
+  <!-- Store -->
+  <main class="tab-panel" id="panel-store">
+    <div class="panel-head">
+      <div>
+        <h2 id="storeTitle">Store</h2>
+        <p class="subtle" id="storeSummary">Redeem your points for items.</p>
+      </div>
+    </div>
+    <div class="points-summary" id="storePointsSummary">
+      <div class="points-summary-row">
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsEarnedLabel">Earned</span>
+          <span class="points-summary-val points-val-earned" id="storePtsEarned">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsSpentLabel">Spent</span>
+          <span class="points-summary-val points-val-spent" id="storePtsSpent">0</span>
+        </div>
+        <div class="points-summary-item">
+          <span class="points-summary-label" id="storePtsAvailLabel">Available</span>
+          <span class="points-summary-val points-val-avail" id="storePtsAvail">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="filter-group" id="storeFilters"></div>
+    <div class="store-grid" id="storeGrid"></div>
+  </main>
+
+  <!-- Life -->
+  <main class="tab-panel active" id="panel-life">
+    <!-- Dashboard -->
+    <div class="dash-greeting">
+      <h2 id="dashGreeting"></h2>
+      <p class="subtle" id="dashTaskMsg"></p>
+      <p class="subtle" id="dashExpectedPts"></p>
+    </div>
+    <div class="dash-two-col">
+      <div class="dash-main">
+        <div class="dash-week-cal" id="dashWeekCal"></div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
+          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
+          <div id="dashTodayList" class="dashboard-list"></div>
+        </div>
+        <div class="dash-day-section">
+          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
+          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
+          <div id="dashTomorrowList" class="dashboard-list"></div>
+        </div>
+      </div>
+      <div class="dash-side">
+        <div class="panel-head dash-secondary-head">
+          <div>
+            <h2>Secondary Tasks</h2>
+            <p class="subtle" id="secSummary">No tasks yet.</p>
+          </div>
+          <button class="btn btn-primary btn-small" id="secAddBtn">+ Add</button>
+        </div>
+        <div class="dash-sec-today" id="secTodaySection" style="display:none">
+          <div class="dash-sec-label">Today</div>
+          <div id="secTodayList" class="sec-task-list"></div>
+        </div>
+        <div class="dash-sec-tomorrow">
+          <div class="dash-sec-label">Tomorrow</div>
+          <div id="secTaskList" class="sec-task-list"></div>
+        </div>
+        <div class="sec-input-area" id="secInputArea" style="display:none">
+          <input type="text" id="secTaskInput" placeholder="e.g. Water plants" maxlength="100">
+          <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
+          <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Life -->
+    <div class="panel-head" style="margin-top:24px">
+      <div>
+        <h2 id="lifeTitle">Life</h2>
+        <p class="subtle" id="lifeSummary">Your acquired items from the store.</p>
+      </div>
+      <div class="life-hero-pts">
+        <span class="life-hero-label" id="lifeTotalLabel">Total items redeemed</span>
+        <span class="life-hero-num" id="lifeTotalItems">0</span>
+      </div>
+    </div>
+    <div class="rpg-stats-panel" id="lifeStatsSection">
+      <div class="rpg-level-badge">
+        <div class="rpg-level-icon">&#9733;</div>
+        <div class="rpg-level-info">
+          <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
+          <div class="rpg-level-bar-wrap">
+            <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
+            <span class="rpg-level-pts" id="lifeLevelPts"></span>
+          </div>
+        </div>
+      </div>
+      <div class="rpg-stats-grid" id="lifeStatsGrid">
+        <div class="rpg-stat" data-stat="health">
+          <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
+              <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="energy">
+          <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
+              <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="hunger">
+          <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
+              <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
+          </div>
+        </div>
+        <div class="rpg-stat" data-stat="thirst">
+          <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
+          <div class="rpg-stat-info">
+            <div class="rpg-stat-row">
+              <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
+              <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
+            </div>
+            <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="filter-group" id="lifeFilters"></div>
+    <div class="life-grid" id="lifeGrid"></div>
+  </main>
+
 </div>
 
-        <footer>
-            Private English Lessons • Online or In-Person • <span id="footerStorageMsg">Data is stored in this browser — export a backup regularly.</span>
-        </footer>
+<!-- Add / Edit Inventory Modal -->
+<div class="modal-overlay" id="invModalOverlay">
+  <div class="modal" id="invModal">
+    <div class="modal-head">
+      <h3 id="invModalTitle">Add item</h3>
+      <button class="icon-btn" id="invModalClose">&times;</button>
     </div>
-
-    <!-- Day Details Modal -->
-    <div id="dayDetailsModal" class="modal">
-        <div class="modal-content">
-            <h2 id="dayDetailsTitle">Day</h2>
-            <div id="dayDetailsList"></div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="openDayEntryModalFromDetails()">+ Add Entry</button>
-                <button class="btn btn-outline" onclick="closeDayDetailsModal()">Close</button>
-            </div>
+    <form id="invForm">
+      <input type="hidden" id="invItemId">
+      <label class="field">
+        <span id="invLabelName">Item name</span>
+        <input type="text" id="invItemName" placeholder="e.g. Screws box" required>
+      </label>
+      <label class="field">
+        <span id="invLabelDesc">Description <em>(optional)</em></span>
+        <textarea id="invItemDesc" rows="2" placeholder="Any extra detail..."></textarea>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span id="invLabelPrice">Price ($)</span>
+          <input type="number" id="invItemPrice" min="0" step="0.01" value="0" required>
+        </label>
+        <label class="field">
+          <span id="invLabelQty">Quantity</span>
+          <input type="number" id="invItemQty" min="0" value="1" required>
+        </label>
+      </div>
+      <label class="field">
+        <span id="invLabelCat">Category</span>
+        <select id="invItemCat" required></select>
+      </label>
+      <label class="field">
+        <span id="invLabelImage">Image <em>(optional)</em></span>
+        <div class="inv-image-row">
+          <label class="btn btn-ghost btn-small" style="cursor:pointer">
+            <span id="invImageLabel">Choose image</span>
+            <input type="file" id="invItemImage" accept="image/*" style="display:none">
+          </label>
+          <span id="invImageName" class="subtle">No image</span>
+          <button type="button" class="btn btn-ghost btn-small" id="invImageRemove" style="display:none;color:var(--danger);border-color:var(--danger)">Remove</button>
         </div>
-    </div>
-
-    <!-- Add Day Entry Modal (lesson or payment, assigned to a student, on a specific date) -->
-    <div id="dayEntryModal" class="modal">
-        <div class="modal-content">
-            <h2>Add Entry — <span id="dayEntryDateLabel"></span></h2>
-
-            <label class="field-label">Student</label>
-            <select id="dayEntryStudent"></select>
-
-            <label class="field-label">Entry Type</label>
-            <div class="status-toggle">
-                <label><input type="radio" name="dayEntryType" value="lesson" checked onchange="toggleDayEntryFields()"> 📚 Lesson</label>
-                <label><input type="radio" name="dayEntryType" value="payment" onchange="toggleDayEntryFields()"> 💰 Payment</label>
-            </div>
-
-            <div id="dayEntryLessonFields">
-                <label class="field-label">Hours</label>
-                <input type="number" id="dayEntryHours" min="0.5" step="0.5" value="1">
-                <div id="dayEntryScheduleRow" style="display:none; margin-top:10px;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="dayEntryScheduleCheck" style="width:auto; margin:0;">
-                        📅 Schedule for later (does not deduct from balance)
-                    </label>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <label class="field-label" style="margin:0;">Time (optional)</label>
-                        <input type="time" id="dayEntryScheduleTime">
-                    </div>
-                </div>
-                <div class="hint">Uses 1 lesson from the student's remaining balance. If they have none remaining, 1 paid lesson is added automatically so the balance doesn't go negative.</div>
-            </div>
-
-            <div id="dayEntryPaymentFields" style="display:none;">
-                <label class="field-label">Lessons purchased</label>
-                <input type="number" id="dayEntryLessons" min="1" value="4">
-
-                <label class="field-label">Amount received ($)</label>
-                <input type="number" id="dayEntryAmount" min="0" step="0.5" value="60">
-                <div class="hint">Defaults to lessons × student's rate — edit if you gave a discount or package deal.</div>
-
-                <label class="field-label">Payment status</label>
-                <div class="status-toggle">
-                    <label><input type="radio" name="dayEntryPaymentStatus" value="received" checked> ✅ Received</label>
-                    <label><input type="radio" name="dayEntryPaymentStatus" value="pending"> ⏳ Pending</label>
-                </div>
-
-                <label class="field-label" style="margin-top:12px;">Deposit proof (optional)</label>
-                <div class="entry-attach-row">
-                    <input type="file" id="dayEntryFiles" multiple accept="image/*,application/pdf" onchange="updateDayEntryAttachList()">
-                    <div id="dayEntrySelectedFiles" class="selected-files-list"></div>
-                    <div id="dayEntryStorageWarning" class="storage-warning">⚠️ Large files use significant storage space. Keep backups of your originals.</div>
-                </div>
-                <div id="dayEntryExistingAttachments" class="entry-attachments"></div>
-            </div>
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closeDayEntryModal()">Cancel</button>
-                <button class="btn" onclick="confirmDayEntry()">Save Entry</button>
-            </div>
+        <div id="invImagePreview" class="inv-image-preview" style="display:none">
+          <img id="invImagePreviewImg" src="" alt="Preview">
         </div>
-    </div>
-
-    <!-- Add/Edit Modal -->
-    <div id="studentModal" class="modal">
-        <div class="modal-content">
-            <h2 id="modalTitle">Add New Student</h2>
-
-            <label class="field-label">Student Name</label>
-            <input type="text" id="editName" placeholder="e.g. Nelson Fariña" required>
-
-            <label class="field-label">Level</label>
-            <select id="editLevel">
-                <option value="TBD">TBD</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Upper-Intermediate">Upper-Intermediate</option>
-                <option value="Advanced">Advanced</option>
-            </select>
-
-            <label class="field-label">Modality</label>
-            <select id="editModality">
-                <option value="Online">Online</option>
-                <option value="In Person">In Person</option>
-                <option value="Both">Both</option>
-            </select>
-
-            <label class="field-label">WhatsApp Number</label>
-            <input type="tel" id="editWhatsapp" placeholder="e.g. +56 9 1234 5678">
-            <div class="hint">Include the country code. Used for the one-click "Contact Student" WhatsApp link.</div>
-
-            <label class="field-label">Age</label>
-            <input type="text" id="editAge" placeholder="e.g. 25">
-
-            <label class="field-label">Address</label>
-            <input type="text" id="editAddress" placeholder="e.g. Santiago, Chile">
-
-            <label class="field-label">Hourly Rate ($)</label>
-            <input type="number" id="editRate" min="0" step="0.5" value="15">
-
-            <label class="field-label">Last Lesson Date</label>
-            <input type="date" id="editLastLesson">
-
-            <label class="field-label">Scheduled Lessons</label>
-            <div id="editScheduledLessons"></div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <input type="date" id="editNewSchedDate" style="flex:1;">
-                <input type="time" id="editNewSchedTime" style="flex:1;">
-                <button class="btn btn-small" type="button" onclick="addScheduledLessonFromModal()">+ Add</button>
-            </div>
-            <div class="hint">Future lessons you want to keep on the calendar. These don't deduct from the student's balance until marked done.</div>
-
-            <label class="field-label" style="margin-top:12px;">Notes / Progress</label>
-            <textarea id="editNotes" rows="3" placeholder="Notes / Progress"></textarea>
-
-            <label class="field-label">Status</label>
-            <select id="editStatus">
-                <option value="Active">Active</option>
-                <option value="Paused">Paused</option>
-                <option value="Contact Student">Contact Student</option>
-            </select>
-            <div class="hint">Paid and remaining lessons aren't edited here — use "$ Payment" to add paid lessons and "+ Lesson" to use them up.</div>
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-                <button class="btn" id="saveButton" onclick="saveStudent()">Save Student</button>
-            </div>
+      </label>
+      <div class="field">
+        <span id="invLabelAcc">Accessories <em>(optional)</em></span>
+        <div id="invAccList" class="todo-input-list"></div>
+        <button type="button" class="btn btn-ghost btn-small" id="invAddAccRow">+ Add accessory</button>
+      </div>
+      <label class="field inv-consumable-field">
+        <span id="invLabelConsumable">Consumable</span>
+        <div class="inv-consumable-toggle">
+          <input type="checkbox" id="invItemConsumable">
+          <span class="inv-consumable-hint">Allow this item to be used from the Life tab</span>
         </div>
+      </label>
+      <div class="field" id="invStatEffectsSection">
+        <span id="invLabelStatEffects">Stat Effects <em>(optional)</em></span>
+        <div id="invStatEffectsList" class="todo-input-list"></div>
+        <button type="button" class="btn btn-ghost btn-small" id="invAddStatEffectRow">+ Add effect</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="invDeleteBtn" style="margin-right:auto;display:none">Delete</button>
+        <button type="button" class="btn btn-ghost" id="invCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add / Edit Entry Modal -->
+<div class="modal-overlay" id="entryModalOverlay">
+  <div class="modal" id="entryModal">
+    <div class="modal-head">
+      <h3 id="entryModalTitle">New entry</h3>
+      <button class="icon-btn" id="entryModalClose">&times;</button>
     </div>
+    <form id="entryForm">
+      <input type="hidden" id="entryId">
+      <label class="field">
+        <span id="entryLabelName">Name</span>
+        <input type="text" id="entryName" placeholder="e.g. Submit report" required>
+      </label>
+      <label class="field">
+        <span id="entryLabelDesc">Description <em>(optional)</em></span>
+        <textarea id="entryDescription" rows="2" placeholder="Any extra detail..."></textarea>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span id="entryLabelDate">Date</span>
+          <input type="date" id="entryDate" required>
+        </label>
+        <label class="field">
+          <span id="entryLabelTime">Time <em>(optional)</em></span>
+          <input type="time" id="entryTime">
+        </label>
+      </div>
+      <div class="field">
+        <span id="entryLabelTodos">To-do items</span>
+        <div id="todoInputList" class="todo-input-list"></div>
+        <button type="button" class="btn btn-ghost btn-small" id="addTodoRow">+ Add item</button>
+      </div>
+      <div class="field">
+        <span id="entryLabelAlarms">Alarms <em>(optional)</em></span>
+        <div id="alarmInputList" class="todo-input-list"></div>
+        <button type="button" class="btn btn-ghost btn-small" id="addAlarmRow">+ Add alarm</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="entryCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save entry</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    <!-- Log Lesson Modal -->
-    <div id="lessonModal" class="modal">
-        <div class="modal-content">
-            <h2>Log a Lesson</h2>
-            <p id="lessonStudentLabel" style="color:#64748b;"></p>
-
-            <label class="field-label">Lesson date</label>
-            <input type="date" id="lessonDate">
-            <div class="hint">Defaults to today — change it to backfill a past lesson.</div>
-
-            <label class="field-label">Hours</label>
-            <input type="number" id="lessonHours" min="0.5" step="0.5" value="1">
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closeLessonModal()">Cancel</button>
-                <button class="btn" onclick="confirmLesson()">Log Lesson</button>
-            </div>
-        </div>
+<!-- Detail View Modal -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal" id="detailModal">
+    <div class="modal-head">
+      <h3 id="detailName">Entry name</h3>
+      <button class="icon-btn" id="detailModalClose">&times;</button>
     </div>
-
-    <!-- Student History Modal -->
-    <div id="historyModal" class="modal">
-        <div class="modal-content">
-            <h2>Student History</h2>
-            <p class="hint">Disenrolled students live here. Re-enroll to bring them back to the active list, or delete permanently to remove them for good.</p>
-            <div id="historyList"></div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closeHistoryModal()">Close</button>
-            </div>
-        </div>
+    <div class="detail-meta">
+      <span class="status-badge" id="detailStatus">Active</span>
+      <span class="detail-datetime" id="detailDateTime">Jan 1</span>
     </div>
-
-    <!-- Pending Payments Modal -->
-    <div id="pendingPaymentsModal" class="modal">
-        <div class="modal-content">
-            <h2>Pending Payments</h2>
-            <div id="pendingPaymentsList"></div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closePendingPaymentsModal()">Close</button>
-            </div>
-        </div>
+    <p class="detail-description" id="detailDescription"></p>
+    <div class="detail-todos" id="detailTodos"></div>
+    <div class="detail-alarms" id="detailAlarms"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="detailDeleteBtn">Delete</button>
+      <button class="btn btn-ghost" id="detailEditBtn">Edit</button>
+      <button class="btn btn-primary" id="detailCloseBtn">Close</button>
     </div>
+  </div>
+</div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <h2>Record Payment</h2>
-            <p id="paymentStudentLabel" style="color:#64748b;"></p>
-
-            <label class="field-label">Lessons purchased</label>
-            <input type="number" id="paymentLessons" min="1" value="4">
-
-            <label class="field-label">Amount received ($)</label>
-            <input type="number" id="paymentAmount" min="0" step="0.5" value="60">
-            <div class="hint">Defaults to lessons × current rate — edit if you gave a discount or package deal.</div>
-
-            <label class="field-label">Payment date</label>
-            <input type="date" id="paymentDate">
-            <div class="hint">Pick any date — including a past one, to backfill history.</div>
-
-            <label class="field-label">Payment status</label>
-            <div class="status-toggle">
-                <label><input type="radio" name="paymentStatus" value="received" checked> ✅ Received</label>
-                <label><input type="radio" name="paymentStatus" value="pending"> ⏳ Pending</label>
-            </div>
-            <div class="hint">"Pending" logs the lessons as scheduled but flags the money as not collected yet — mark it received later from the Pending Payments panel.</div>
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-outline" onclick="closePaymentModal()">Cancel</button>
-                <button class="btn btn-payment" onclick="confirmPayment()">Record Payment</button>
-            </div>
-        </div>
+<!-- Admin Login Modal -->
+<div class="modal-overlay" id="adminModalOverlay">
+  <div class="modal" id="adminModal">
+    <div class="modal-head">
+      <h3 id="adminModalTitle">Admin Access</h3>
+      <button class="icon-btn" id="adminModalClose">&times;</button>
     </div>
+    <form id="adminForm">
+      <label class="field">
+        <span id="adminLabelUser">Username</span>
+        <input type="text" id="adminUser" placeholder="admin" required>
+      </label>
+      <label class="field">
+        <span id="adminLabelPass">Password</span>
+        <input type="password" id="adminPass" placeholder="••••••" required>
+      </label>
+      <p class="subtle" id="adminError" style="color:var(--danger);display:none;margin-top:4px">Invalid credentials.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="adminCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    <script src="cloudSync.js"></script>
-    <script src="app.js"></script>
-    <script>
-        // Offline admin login (admin / admin123)
-        window.offlineAdminLogin = function() {
-            var username = document.getElementById('offlineUsername').value.trim();
-            var password = document.getElementById('offlinePassword').value;
-            var errorEl = document.getElementById('offlineLoginError');
-            if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+<!-- Store Redeem Modal -->
+<div class="modal-overlay" id="redeemModalOverlay">
+  <div class="modal" id="redeemModal">
+    <div class="modal-head">
+      <h3 id="redeemModalTitle">Redeem Item</h3>
+      <button class="icon-btn" id="redeemModalClose">&times;</button>
+    </div>
+    <div id="redeemContent"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="redeemCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="redeemConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
 
-            if (username === 'admin' && password === 'admin123') {
-                localStorage.setItem('lessonsOfflineAuth', '1');
-                var gate = document.getElementById('loginGate');
-                var app = document.getElementById('appContainer');
-                if (gate) gate.style.display = 'none';
-                if (app) app.style.display = 'block';
-            } else {
-                if (errorEl) {
-                    errorEl.textContent = 'Incorrect username or password.';
-                    errorEl.style.display = 'block';
-                }
-            }
-        };
+<div class="toast" id="toast"></div>
 
-        window.offlineLogout = function() {
-            localStorage.removeItem('lessonsOfflineAuth');
-            location.reload();
-        };
-
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js').catch(function(err) {
-                    console.warn('SW registration failed:', err);
-                });
-            });
-        }
-
-        // Install app prompt
-        var deferredInstallPrompt = null;
-
-        // Show iOS hint for devices that don't support beforeinstallprompt
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-            var iosHint = document.getElementById('iosInstallHint');
-            if (iosHint) iosHint.style.display = 'block';
-        }
-
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredInstallPrompt = e;
-            var btn = document.getElementById('installAppBtn');
-            if (btn) btn.style.display = 'inline-block';
-        });
-
-        window.addEventListener('appinstalled', function() {
-            deferredInstallPrompt = null;
-            var btn = document.getElementById('installAppBtn');
-            if (btn) btn.style.display = 'none';
-        });
-
-        window.installApp = function() {
-            if (!deferredInstallPrompt) return;
-            deferredInstallPrompt.prompt();
-            deferredInstallPrompt.userChoice.then(function() {
-                deferredInstallPrompt = null;
-                var btn = document.getElementById('installAppBtn');
-                if (btn) btn.style.display = 'none';
-            });
-        };
-    </script>
+<script src="js/state.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/entries.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/store.js"></script>
+<script src="js/life.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/init.js"></script>
 </body>
 </html>
