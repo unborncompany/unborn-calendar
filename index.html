@@ -278,6 +278,20 @@
       </div>
     </div>
     <div class="settings-section">
+      <h3 id="moodSettingsTitle">Mood States</h3>
+      <p class="subtle" id="moodSettingsHint">Customize the mood options available in check-ins.</p>
+      <div id="moodStatesList" class="mood-states-list"></div>
+      <div class="mood-states-add-row">
+        <input type="text" id="moodStateLabelInput" placeholder="Label" maxlength="20" class="mood-state-input">
+        <input type="text" id="moodStateEmojiInput" placeholder="Emoji" maxlength="4" class="mood-state-input mood-state-emoji-input">
+        <button type="button" class="btn btn-ghost btn-small" id="moodStateAddBtn">+ Add</button>
+      </div>
+      <div class="settings-sound-row" style="margin-top:10px">
+        <button type="button" class="btn btn-primary btn-small" id="moodStatesSaveBtn">Save</button>
+        <button type="button" class="btn btn-ghost btn-small" id="moodStatesResetBtn">Reset defaults</button>
+      </div>
+    </div>
+    <div class="settings-section">
       <h3 id="settingsResetTitle">Reset All Data</h3>
       <p class="subtle" id="settingsResetHint">Permanently delete all entries, inventory, tasks, and settings. This cannot be undone.</p>
       <div class="settings-sound-row">
@@ -323,6 +337,7 @@
       <p class="subtle" id="dashTaskMsg"></p>
       <p class="subtle" id="dashExpectedPts"></p>
     </div>
+    <div id="dashMoodCheckin"></div>
     <div class="dash-two-col">
       <div class="dash-main">
         <div class="dash-week-cal" id="dashWeekCal"></div>
@@ -360,6 +375,8 @@
         </div>
       </div>
     </div>
+
+    <div id="dashMoodOverview"></div>
 
     <!-- Life -->
     <div class="panel-head" style="margin-top:24px">
