@@ -48,7 +48,8 @@
 [data-theme="dark"] .todo-input-row select,
 [data-theme="dark"] .settings-field input,
 [data-theme="dark"] .lang-select,
-[data-theme="dark"] .sec-input-area input {
+[data-theme="dark"] .sec-input-area input,
+[data-theme="dark"] .mood-state-input {
   background: var(--paper);
   color: var(--ink);
 }
@@ -93,6 +94,12 @@
 
 [data-theme="dark"] .sec-task-item:hover {
   background: var(--line);
+}
+
+[data-theme="dark"] .mood-state-row {
+  background: var(--paper);
+  border-color: var(--line);
+  color: var(--ink);
 }
 
 /* Dark mode overrides for gamey completed card */
