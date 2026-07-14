@@ -964,3 +964,81 @@
 .mood-stat-item.mood-stat-least .mood-stat-value {
   color: var(--danger);
 }
+
+/* ============ Mood Summary Section ============ */
+.mood-summary-section {
+  margin-bottom: 24px;
+}
+.mood-summary-separator {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);
+  margin: 8px 0 20px;
+}
+.mood-summary-heading {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mood-summary-icon {
+  font-size: 18px;
+}
+
+/* Mood filter bar */
+.mood-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--line-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+.mood-filter-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.mood-filter-input {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  background: var(--paper-card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.mood-filter-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+.mood-filter-dash {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.mood-filter-clear {
+  margin-left: auto;
+  font-size: 11px;
+  color: #8b5cf6;
+}
+
+/* Range label */
+.mood-range-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}

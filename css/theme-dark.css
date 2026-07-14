@@ -49,7 +49,8 @@
 [data-theme="dark"] .settings-field input,
 [data-theme="dark"] .lang-select,
 [data-theme="dark"] .sec-input-area input,
-[data-theme="dark"] .mood-state-input {
+[data-theme="dark"] .mood-state-input,
+[data-theme="dark"] .mood-filter-input {
   background: var(--paper);
   color: var(--ink);
 }

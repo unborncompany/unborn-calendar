@@ -169,6 +169,213 @@
   opacity: 0.7;
 }
 
+/* ============ Life Entry Cards (Dashboard on Life tab) ============ */
+.life-entry-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.97) 100%);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.life-entry-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* TODAY card */
+.life-entry-today {
+  border: 1px solid rgba(94, 234, 212, 0.3);
+  border-left: 4px solid #5eead4;
+}
+.life-entry-today::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(94, 234, 212, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+.life-entry-today:hover {
+  box-shadow: 0 4px 20px rgba(94, 234, 212, 0.15), 0 2px 10px rgba(0, 0, 0, 0.4);
+  border-color: rgba(94, 234, 212, 0.45);
+}
+.life-entry-today.ready-to-claim {
+  border-color: rgba(94, 234, 212, 0.5);
+  box-shadow: 0 0 16px rgba(94, 234, 212, 0.2), 0 2px 10px rgba(0, 0, 0, 0.35);
+  animation: today-glow 2s ease-in-out infinite;
+}
+@keyframes today-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(94, 234, 212, 0.15), 0 2px 10px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 22px rgba(94, 234, 212, 0.3), 0 2px 10px rgba(0, 0, 0, 0.35); }
+}
+
+/* TOMORROW card */
+.life-entry-tomorrow {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-left: 4px solid rgba(148, 163, 184, 0.5);
+}
+.life-entry-tomorrow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+}
+.life-entry-tomorrow:hover {
+  box-shadow: 0 4px 16px rgba(148, 163, 184, 0.12), 0 2px 10px rgba(0, 0, 0, 0.4);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* Top row: time + name + points */
+.life-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  position: relative;
+  z-index: 1;
+}
+.life-entry-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #5eead4;
+  background: rgba(94, 234, 212, 0.12);
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(94, 234, 212, 0.2);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.life-entry-tomorrow .life-entry-time {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+.life-entry-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: 15px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.01em;
+}
+.life-entry-tomorrow .life-entry-name {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+.life-entry-pts {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #5eead4;
+  background: rgba(94, 234, 212, 0.12);
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 234, 212, 0.2);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.life-entry-pts.neg {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.life-entry-tomorrow .life-entry-pts {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+/* Todos */
+.life-entry-todos {
+  border-top: 1px solid rgba(94, 234, 212, 0.1);
+  padding: 4px 10px 4px 14px;
+  background: rgba(0, 0, 0, 0.15);
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 234, 212, 0.25) transparent;
+}
+.life-entry-tomorrow .life-entry-todos {
+  border-top-color: rgba(148, 163, 184, 0.1);
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+.life-entry-todos::-webkit-scrollbar { width: 5px; }
+.life-entry-todos::-webkit-scrollbar-track { background: transparent; }
+.life-entry-todos::-webkit-scrollbar-thumb { background: rgba(94, 234, 212, 0.25); border-radius: 3px; }
+.life-entry-tomorrow .life-entry-todos::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); }
+
+.life-entry-todo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.life-entry-todo:hover { background: rgba(255, 255, 255, 0.05); }
+.life-entry-todo.done span { text-decoration: line-through; color: #475569; opacity: 0.6; }
+.life-entry-check {
+  width: 15px;
+  height: 15px;
+  accent-color: #5eead4;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+.life-entry-check:hover { transform: scale(1.15); }
+.life-entry-tomorrow .life-entry-check { accent-color: #94a3b8; }
+
+/* Progress */
+.life-entry-progress {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #64748b;
+  padding: 0 14px;
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+}
+.life-entry-tomorrow .life-entry-progress { color: #475569; }
+
+/* Action: Get Points button */
+.life-entry-action {
+  padding: 8px 14px 12px;
+}
+.life-entry-claim-btn {
+  width: 100%;
+  font-size: 13px;
+  padding: 8px 16px;
+  letter-spacing: 0.02em;
+}
+
+/* Locked: after claiming */
+.life-entry-locked {
+  padding: 8px 14px 12px;
+  font-size: 12px;
+  color: #475569;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.life-entry-locked-icon {
+  color: #5eead4;
+  font-size: 14px;
+}
+.life-entry-card.claimed {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 /* ============ Life Card Todos ============ */
 .life-card-todos {
   border-top: 1px solid var(--line);
