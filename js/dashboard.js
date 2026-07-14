@@ -545,6 +545,186 @@ function renderPointsSummary() {
   document.querySelectorAll("#dashPtsAvailLabel, #storePtsAvailLabel").forEach(el => { el.textContent = t("pts_available"); });
 }
 
+/* ============ Mood Check-in ============ */
+function getMoodPeriod(hour) {
+  // Morning: displayed after morning has passed (12:00–20:00)
+  // Afternoon: displayed after afternoon has passed (20:00–06:00)
+  // Night: displayed once morning starts (06:00–12:00)
+  if (hour >= 20 || hour < 6) return "afternoon";
+  if (hour >= 6 && hour < 12) return "night";
+  return "morning";
+}
+
+function getMoodForToday(period) {
+  const today = todayISO();
+  return moods.find(m => m.date === today && m.period === period);
+}
+
+function getMoodStateId(stateObj) {
+  return stateObj.id || stateObj.label;
+}
+
+function getMoodStateLabel(stateObj) {
+  return stateObj.label || stateObj.id;
+}
+
+function renderMoodCheckin() {
+  const container = document.getElementById("dashMoodCheckin");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const hour = new Date().getHours();
+  const period = getMoodPeriod(hour);
+  const questionKey = "mood_question_" + period;
+  const existing = getMoodForToday(period);
+
+  const card = document.createElement("div");
+  card.className = "mood-checkin-card";
+
+  if (existing) {
+    const stateLabel = getMoodStateLabel(moodStates.find(s => s.id === existing.state || s.label === existing.state) || { label: existing.state });
+    card.innerHTML = `
+      <div class="mood-checkin-answered">
+        <span class="mood-answered-badge">${getMoodEmoji(existing.state)} ${stateLabel}</span>
+        <span class="mood-answered-label">${t("mood_answered")}</span>
+      </div>
+    `;
+  } else {
+    const question = document.createElement("div");
+    question.className = "mood-checkin-question";
+    question.textContent = t(questionKey);
+    card.appendChild(question);
+
+    const statesRow = document.createElement("div");
+    statesRow.className = "mood-checkin-states";
+    moodStates.forEach(state => {
+      const btn = document.createElement("button");
+      btn.className = "mood-state-btn";
+      btn.textContent = state.emoji + " " + state.label;
+      btn.addEventListener("click", () => {
+        moods.push({
+          date: todayISO(),
+          period: period,
+          state: state.id || state.label,
+          timestamp: new Date().toISOString(),
+        });
+        saveMoods();
+        // Award 1 point for mood check-in
+        moodPoints.push({
+          date: todayISO(),
+          timestamp: new Date().toISOString(),
+        });
+        saveMoodPoints();
+        showToast(t("toast_moodPoints"));
+        playPointsCelebration(1, "Mood check-in");
+        renderMoodCheckin();
+        renderMoodOverview();
+        renderPointsSummary();
+        renderLifeStats();
+      });
+      statesRow.appendChild(btn);
+    });
+    card.appendChild(statesRow);
+  }
+
+  container.appendChild(card);
+}
+
+/* ============ Mood Overview ============ */
+function renderMoodOverview() {
+  const container = document.getElementById("dashMoodOverview");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (moods.length === 0) {
+    container.innerHTML = `<div class="mood-overview"><div class="mood-overview-empty">${t("mood_noData")}</div></div>`;
+    return;
+  }
+
+  const card = document.createElement("div");
+  card.className = "mood-overview";
+
+  const title = document.createElement("div");
+  title.className = "mood-overview-title";
+  title.textContent = t("mood_weekOverview");
+  card.appendChild(title);
+
+  // Today's periods
+  const today = todayISO();
+  const todayMoods = moods.filter(m => m.date === today);
+  const row = document.createElement("div");
+  row.className = "mood-today-row";
+
+  MOOD_PERIODS.forEach(period => {
+    const found = todayMoods.find(m => m.period === period);
+    const item = document.createElement("div");
+    item.className = "mood-today-period" + (found ? "" : " pending");
+    const periodKey = "mood_period" + period.charAt(0).toUpperCase() + period.slice(1);
+    item.innerHTML = `
+      <span class="mood-period-dot"></span>
+      <span class="mood-period-label">${t(periodKey)}</span>
+      <span class="mood-period-state">${found ? getMoodEmoji(found.state) + " " + (moodStates.find(s => s.id === found.state || s.label === found.state)?.label || found.state) : "\u2014"}</span>
+    `;
+    row.appendChild(item);
+  });
+  card.appendChild(row);
+
+  // Week stats — last 7 days
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekMoods = moods.filter(m => new Date(m.date) >= weekAgo);
+
+  if (weekMoods.length > 0) {
+    const section = document.createElement("div");
+    section.className = "mood-week-section";
+
+    const label = document.createElement("div");
+    label.className = "mood-week-label";
+    label.textContent = t("mood_mostFelt") + " / " + t("mood_leastFelt");
+    section.appendChild(label);
+
+    // Count occurrences
+    const counts = {};
+    weekMoods.forEach(m => { counts[m.state] = (counts[m.state] || 0) + 1; });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+    const statsRow = document.createElement("div");
+    statsRow.className = "mood-week-stats";
+
+    if (sorted.length > 0) {
+      const most = sorted[0];
+      const least = sorted[sorted.length - 1];
+      const mostLabel = moodStates.find(s => s.id === most[0] || s.label === most[0])?.label || most[0];
+      const leastLabel = moodStates.find(s => s.id === least[0] || s.label === least[0])?.label || least[0];
+
+      const mostEl = document.createElement("div");
+      mostEl.className = "mood-stat-item mood-stat-most";
+      mostEl.innerHTML = `
+        <span class="mood-stat-emoji">${getMoodEmoji(most[0])}</span>
+        <span class="mood-stat-label">${mostLabel}</span>
+        <span class="mood-stat-value">${most[1]}</span>
+      `;
+      statsRow.appendChild(mostEl);
+
+      if (sorted.length > 1 && least[0] !== most[0]) {
+        const leastEl = document.createElement("div");
+        leastEl.className = "mood-stat-item mood-stat-least";
+        leastEl.innerHTML = `
+          <span class="mood-stat-emoji">${getMoodEmoji(least[0])}</span>
+          <span class="mood-stat-label">${leastLabel}</span>
+          <span class="mood-stat-value">${least[1]}</span>
+        `;
+        statsRow.appendChild(leastEl);
+      }
+    }
+
+    section.appendChild(statsRow);
+    card.appendChild(section);
+  }
+
+  container.appendChild(card);
+}
+
 function renderDashboard() {
   const today = todayISO();
   const tomorrow = tomorrowISO();
@@ -610,4 +790,6 @@ function renderDashboard() {
   renderDayEntries(document.getElementById("dashTomorrowList"), tomorrow, t("dash_nothingTomorrow"), isLifePanel);
 
   renderSecTasks();
+  renderMoodCheckin();
+  renderMoodOverview();
 }

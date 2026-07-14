@@ -131,6 +131,8 @@ function calcDayPoints(dateStr) {
   pts += dayEdits.length * -1;
   const dayDeletes = deletePenalties.filter(p => p.deletedAt && p.deletedAt.slice(0, 10) === dateStr);
   pts += dayDeletes.length * -2;
+  const dayMoodPts = moodPoints.filter(p => p.date === dateStr);
+  pts += dayMoodPts.length;
   return pts;
 }
 
@@ -141,6 +143,7 @@ function calcTotalPointsCapped() {
   deletedSecTasks.forEach(d => { if (d.deletedAt) allDates.add(d.deletedAt.slice(0, 10)); });
   editPenalties.forEach(p => { if (p.editedAt) allDates.add(p.editedAt.slice(0, 10)); });
   deletePenalties.forEach(p => { if (p.deletedAt) allDates.add(p.deletedAt.slice(0, 10)); });
+  moodPoints.forEach(p => { if (p.date) allDates.add(p.date); });
   let total = 0;
   for (const date of allDates) {
     const dayPts = calcDayPoints(date);

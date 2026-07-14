@@ -66,6 +66,9 @@ function gatherSaveData() {
     notifSound: notifSoundData,
     firedAlarms: firedAlarms,
     lifeStats: lifeStats,
+    moods: moods,
+    moodStates: moodStates,
+    moodPoints: moodPoints,
   };
 }
 
@@ -106,6 +109,9 @@ function applySaveData(data) {
   if (data.notifSound) notifSoundData = data.notifSound;
   if (data.firedAlarms) firedAlarms = data.firedAlarms;
   if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
+  if (data.moods && Array.isArray(data.moods)) moods = data.moods;
+  if (data.moodStates && Array.isArray(data.moodStates) && data.moodStates.length > 0) moodStates = data.moodStates;
+  if (data.moodPoints && Array.isArray(data.moodPoints)) moodPoints = data.moodPoints;
   saveEntries();
   saveInventory();
   saveSecTasks();
@@ -235,7 +241,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     if (btn.dataset.tab === "inventory") renderInventory();
     if (btn.dataset.tab === "store") renderStore();
     if (btn.dataset.tab === "life") { renderLife(); renderDashboard(); }
-    if (btn.dataset.tab === "settings") updateSoundUI();
+    if (btn.dataset.tab === "settings") { updateSoundUI(); renderMoodStatesSettings(); }
   });
 });
 
@@ -302,6 +308,14 @@ function applyTranslations() {
   document.getElementById("settingsInstallHint").textContent = t("settings_installHint");
   document.getElementById("installAppBtn").textContent = t("settings_installBtn");
   document.getElementById("installIOSHint").textContent = t("settings_installIOSHint");
+  // Settings — Mood States
+  document.getElementById("moodSettingsTitle").textContent = t("mood_settings");
+  document.getElementById("moodSettingsHint").textContent = t("mood_settingsHint");
+  document.getElementById("moodStateLabelInput").placeholder = t("mood_settingsLabel");
+  document.getElementById("moodStateEmojiInput").placeholder = t("mood_settingsEmoji");
+  document.getElementById("moodStateAddBtn").textContent = t("mood_settingsAdd");
+  document.getElementById("moodStatesSaveBtn").textContent = t("mood_settingsSave");
+  document.getElementById("moodStatesResetBtn").textContent = t("mood_settingsDefault");
   // Store
   document.getElementById("storeTitle").textContent = t("store_title");
   document.getElementById("storeSummary").textContent = t("store_summary");
@@ -437,6 +451,73 @@ function syncCalViewButtons() {
   listBtn.classList.toggle("active", calView === "list");
 }
 
+/* ============ Mood States Settings ============ */
+function renderMoodStatesSettings() {
+  const list = document.getElementById("moodStatesList");
+  if (!list) return;
+  list.innerHTML = "";
+  moodStates.forEach((state, idx) => {
+    const row = document.createElement("div");
+    row.className = "mood-state-row";
+    const emojiSpan = document.createElement("span");
+    emojiSpan.className = "mood-state-row-emoji";
+    emojiSpan.textContent = state.emoji || "\u{1F610}";
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "mood-state-row-label";
+    labelSpan.textContent = state.label;
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn btn-ghost btn-small mood-state-remove-btn";
+    removeBtn.textContent = "\u00d7";
+    removeBtn.title = t("mood_settingsRemove");
+    removeBtn.addEventListener("click", () => {
+      if (moodStates.length <= 1) {
+        showToast(t("mood_settingsMin"));
+        return;
+      }
+      moodStates.splice(idx, 1);
+      renderMoodStatesSettings();
+    });
+    row.appendChild(emojiSpan);
+    row.appendChild(labelSpan);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("moodStateAddBtn").addEventListener("click", () => {
+  const labelInput = document.getElementById("moodStateLabelInput");
+  const emojiInput = document.getElementById("moodStateEmojiInput");
+  const label = labelInput.value.trim();
+  const emoji = emojiInput.value.trim() || "\u{1F610}";
+  if (!label) return;
+  if (moodStates.some(s => s.label.toLowerCase() === label.toLowerCase())) {
+    showToast(t("mood_settingsMin"));
+    return;
+  }
+  moodStates.push({ id: "ms_" + uid(), label, emoji });
+  labelInput.value = "";
+  emojiInput.value = "";
+  renderMoodStatesSettings();
+});
+
+document.getElementById("moodStatesSaveBtn").addEventListener("click", () => {
+  if (moodStates.length === 0) {
+    showToast(t("mood_settingsMin"));
+    return;
+  }
+  saveMoodStates();
+  showToast(t("mood_settingsSaved"));
+  renderDashboard();
+});
+
+document.getElementById("moodStatesResetBtn").addEventListener("click", () => {
+  moodStates = DEFAULT_MOOD_STATES.map(s => ({ id: "ms_" + uid(), label: s.charAt(0).toUpperCase() + s.slice(1), emoji: getMoodEmoji(s) }));
+  saveMoodStates();
+  renderMoodStatesSettings();
+  showToast(t("mood_settingsSaved"));
+  renderDashboard();
+});
+
 document.getElementById("resetAllBtn").addEventListener("click", () => {
   if (!confirm(t("settings_resetConfirm"))) return;
   localStorage.removeItem(STORAGE_KEY);
@@ -453,6 +534,9 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   localStorage.removeItem("ledger.firedAlarms.v1");
   localStorage.removeItem(LANG_KEY);
   localStorage.removeItem(LIFE_STATS_KEY);
+  localStorage.removeItem(MOOD_STORAGE_KEY);
+  localStorage.removeItem(MOOD_STATES_KEY);
+  localStorage.removeItem(MOOD_POINTS_KEY);
   entries = [];
   secTasks = [];
   deletedSecTasks = [];
@@ -467,6 +551,9 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   editPenalties = [];
   deletePenalties = [];
   lifeStats = { health: 95, energy: 80, hunger: 50, thirst: 70, level: 1, lastDecayAt: new Date().toISOString(), lowSince: null };
+  moods = [];
+  moodStates = [...DEFAULT_MOOD_STATES.map(s => ({ id: "ms_" + uid(), label: s.charAt(0).toUpperCase() + s.slice(1), emoji: getMoodEmoji(s) }))];
+  moodPoints = [];
   document.getElementById("langSelect").value = lang;
   document.getElementById("themeSelect").value = theme;
   document.getElementById("calViewSelect").value = calView;
@@ -496,6 +583,9 @@ function refreshAll() {
   }
   renderPointsSummary();
   renderLife();
+  if (document.getElementById("panel-settings").classList.contains("active")) {
+    renderMoodStatesSettings();
+  }
 }
 
 /* ============ Install App ============ */

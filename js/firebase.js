@@ -100,6 +100,9 @@ function getCloudData() {
     firedAlarms: firedAlarms,
     notifSound: notifSoundData,
     lifeStats: lifeStats,
+    moods: moods,
+    moodStates: moodStates,
+    moodPoints: moodPoints,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -146,6 +149,11 @@ async function loadFromCloud() {
       if (data.firedAlarms) firedAlarms = data.firedAlarms;
       if (data.notifSound) notifSoundData = data.notifSound;
       if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
+    if (data.moods && Array.isArray(data.moods)) moods = data.moods;
+    if (data.moodStates && Array.isArray(data.moodStates) && data.moodStates.length > 0) moodStates = data.moodStates;
+    if (data.moodPoints && Array.isArray(data.moodPoints)) moodPoints = data.moodPoints;
+      if (data.moodStates && Array.isArray(data.moodStates) && data.moodStates.length > 0) moodStates = data.moodStates;
+      if (data.moodPoints && Array.isArray(data.moodPoints)) moodPoints = data.moodPoints;
       // Save everything to localStorage as cache
       saveEntries();
       saveInventory();
@@ -165,6 +173,15 @@ async function loadFromCloud() {
       }
       if (notifSoundData) {
         try { localStorage.setItem(NOTIF_SOUND_KEY, notifSoundData); } catch (e) {}
+      }
+      if (data.moods) {
+        try { localStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(moods)); } catch (e) {}
+      }
+      if (data.moodStates) {
+        try { localStorage.setItem(MOOD_STATES_KEY, JSON.stringify(moodStates)); } catch (e) {}
+      }
+      if (data.moodPoints) {
+        try { localStorage.setItem(MOOD_POINTS_KEY, JSON.stringify(moodPoints)); } catch (e) {}
       }
       loadNotifSound();
       refreshAll();
@@ -206,6 +223,7 @@ function subscribeToCloud() {
     if (data.firedAlarms) firedAlarms = data.firedAlarms;
     if (data.notifSound) notifSoundData = data.notifSound;
     if (data.lifeStats) lifeStats = { ...lifeStats, ...data.lifeStats };
+    if (data.moods && Array.isArray(data.moods)) moods = data.moods;
     // Update localStorage cache
     saveEntries();
     saveInventory();

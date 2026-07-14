@@ -18,6 +18,12 @@ const REDEEMED_KEY = "ledger.redeemed.v1";
 const EDIT_PENALTY_KEY = "ledger.editPenalties.v1";
 const DELETE_PENALTY_KEY = "ledger.deletePenalties.v1";
 const LIFE_STATS_KEY = "ledger.lifeStats.v1";
+const MOOD_STORAGE_KEY = "ledger.moods.v1";
+const MOOD_STATES_KEY = "ledger.moodStates.v1";
+const MOOD_POINTS_KEY = "ledger.moodPoints.v1";
+
+const DEFAULT_MOOD_STATES = ["happy", "calm", "energetic", "tired", "stressed", "anxious", "sad", "angry", "hungry", "motivated", "neutral"];
+const MOOD_PERIODS = ["morning", "afternoon", "night"];
 
 /* ---------- Caps ---------- */
 const MAX_ENTRIES_PER_DAY = 15;
@@ -69,6 +75,85 @@ function saveLifeStats() {
 }
 
 let lifeStats = loadLifeStats();
+
+/* ---------- Moods ---------- */
+function loadMoods() {
+  try {
+    const raw = localStorage.getItem(MOOD_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveMoods() {
+  try { localStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(moods)); } catch (e) {}
+  scheduleCloudSave();
+}
+
+let moods = loadMoods();
+
+/* ---------- Mood Emoji Map ---------- */
+const MOOD_EMOJI_MAP = {
+  happy: "\u{1F604}", calm: "\u{1F60C}", energetic: "\u{1F4AA}", tired: "\u{1F634}",
+  stressed: "\u{1F625}", anxious: "\u{1F61F}", sad: "\u{1F622}", angry: "\u{1F621}",
+  hungry: "\u{1F60B}", motivated: "\u{1F4AA}", neutral: "\u{1F610}",
+};
+
+function getMoodEmoji(state) {
+  if (typeof state === "object" && state.emoji) return state.emoji;
+  if (typeof state === "string" && MOOD_EMOJI_MAP[state]) return MOOD_EMOJI_MAP[state];
+  if (typeof state === "string" && moodStates) {
+    const found = moodStates.find(s => s.label === state || s.id === state);
+    if (found) return found.emoji;
+  }
+  return "\u{1F610}";
+}
+
+/* ---------- Mood States (customizable) ---------- */
+function loadMoodStates() {
+  try {
+    const raw = localStorage.getItem(MOOD_STATES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (typeof parsed[0] === "string") {
+          return parsed.map(s => ({
+            id: "ms_" + s.slice(0, 5),
+            label: s.charAt(0).toUpperCase() + s.slice(1),
+            emoji: MOOD_EMOJI_MAP[s] || "\u{1F610}",
+          }));
+        }
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  return DEFAULT_MOOD_STATES.map(s => ({
+    id: "ms_" + s.slice(0, 5),
+    label: s.charAt(0).toUpperCase() + s.slice(1),
+    emoji: MOOD_EMOJI_MAP[s] || "\u{1F610}",
+  }));
+}
+
+function saveMoodStates() {
+  try { localStorage.setItem(MOOD_STATES_KEY, JSON.stringify(moodStates)); } catch (e) {}
+  scheduleCloudSave();
+}
+
+let moodStates = loadMoodStates();
+
+/* ---------- Mood Points ---------- */
+function loadMoodPoints() {
+  try {
+    const raw = localStorage.getItem(MOOD_POINTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveMoodPoints() {
+  try { localStorage.setItem(MOOD_POINTS_KEY, JSON.stringify(moodPoints)); } catch (e) {}
+  scheduleCloudSave();
+}
+
+let moodPoints = loadMoodPoints();
 
 function loadEditPenalties() {
   try {
