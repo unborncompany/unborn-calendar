@@ -1,5 +1,5 @@
 /* ============ sw.js — Service Worker ============ */
-const CACHE_NAME = "gol-cache-v3.1";
+const CACHE_NAME = "gol-cache-v2.3";
 
 const SHELL_URLS = [
   "/",
@@ -35,7 +35,7 @@ const SHELL_URLS = [
   "/js/init.js",
 ];
 
-/* Domains to never intercept — Firebase SDK ES modules, Auth, Firestore, Google Fonts */
+/* Domains to never intercept */
 const BYPASS_DOMAINS = [
   "www.gstatic.com",
   "googleapis.com",
@@ -55,48 +55,15 @@ function shouldBypass(url) {
   }
 }
 
-/* Install — pre-cache the full app shell + Google Fonts */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      /* Cache the app shell */
+      console.log("Service Worker: Caching app shell");
       await cache.addAll(SHELL_URLS);
-
-      /* Fetch the Google Fonts CSS and cache it + its referenced font files */
-      try {
-        const fontsCSSUrl = "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap";
-        const resp = await fetch(fontsCSSUrl);
-        if (resp.ok) {
-          const cssText = await resp.text();
-          await cache.put(fontsCSSUrl, resp);
-          /* Extract font URLs from the CSS (url(...) references) */
-          const fontUrlRegex = /url\((https?:\/\/[^)]+)\)/g;
-          let match;
-          const fontUrls = [];
-          while ((match = fontUrlRegex.exec(cssText)) !== null) {
-            fontUrls.push(match[1]);
-          }
-          /* Also match src: url(...) patterns */
-          const srcRegex = /src:\s*url\((https?:\/\/[^)]+)\)/g;
-          while ((match = srcRegex.exec(cssText)) !== null) {
-            if (!fontUrls.includes(match[1])) fontUrls.push(match[1]);
-          }
-          /* Fetch and cache each font file */
-          for (const fontUrl of fontUrls) {
-            try {
-              const fontResp = await fetch(fontUrl);
-              if (fontResp.ok) {
-                await cache.put(fontUrl, fontResp);
-              }
-            } catch (_) { /* individual font fetch failed, continue */ }
-          }
-        }
-      } catch (_) { /* Google Fonts fetch failed, continue — offline fonts may still work from browser cache */ }
     }).then(() => self.skipWaiting())
   );
 });
 
-/* Activate — clean up old caches */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -107,20 +74,33 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* Fetch — strategy split by request type */
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  /* Never intercept non-GET, Firebase, or Google domains */
   if (request.method !== "GET") return;
   if (shouldBypass(request.url)) return;
 
-  /* Navigation / HTML: network-first, fallback to cached index.html */
+  // Force fresh default-inventory.json when online
+  if (request.url.includes("default-inventory.json")) {
+    if (navigator.onLine) {
+      event.respondWith(
+        fetch(request, { cache: "no-store" })
+          .then(response => {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+            return response;
+          })
+          .catch(() => caches.match(request))
+      );
+      return;
+    }
+  }
+
+  // Navigation requests (HTML) — network first, fallback to index.html
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          /* Update cache in background */
+        .then(response => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
           return response;
@@ -130,7 +110,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  /* Static assets: cache-first (stale-while-revalidate) */
+  // Static assets — Cache-first with network revalidation
   event.respondWith(
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request).then((response) => {
