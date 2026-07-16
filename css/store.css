@@ -1,28 +1,5 @@
 /* ============ Store ============ */
 
-/* Life panel header */
-.life-hero-pts {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-.life-hero-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-.life-hero-num {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--sage);
-  line-height: 1;
-}
-
 .store-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -31,17 +8,19 @@
 
 .store-card {
   background: var(--paper-card);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: box-shadow var(--transition), transform var(--transition-fast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 .store-card:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--sage);
 }
 .store-card.out-of-stock {
   opacity: 0.5;
@@ -58,7 +37,7 @@
 .store-card-noimg {
   width: 100%;
   height: 160px;
-  background: linear-gradient(135deg, var(--line-soft) 0%, var(--line) 100%);
+  background: linear-gradient(135deg, var(--line-soft) 0%, var(--paper-card-alt) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,39 +50,42 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 .store-card-name {
+  font-family: var(--font-pixel-body);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 20px;
   color: var(--ink);
 }
 .store-card-price {
-  font-family: var(--font-mono);
-  font-size: 13px;
+  font-family: var(--font-pixel);
+  font-size: 10px;
   color: var(--sage);
-  font-weight: 600;
+  font-weight: 400;
 }
 .store-card-qty {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
   color: var(--ink-soft);
 }
 .store-card-cat {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-pixel);
+  font-size: 7px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--ink-soft);
   padding: 3px 8px;
   background: var(--line-soft);
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   display: inline-block;
   align-self: flex-start;
 }
 .store-card-desc {
-  font-size: 12px;
+  font-family: var(--font-pixel-body);
+  font-size: 14px;
   color: var(--ink-soft);
   line-height: 1.5;
 }
@@ -125,17 +107,18 @@
 
 .store-card-qty-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.75);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-  backdrop-filter: blur(4px);
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--rpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  font-weight: 400;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rpg-gold);
   pointer-events: none;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* Quantity selector in redeem modal */
@@ -145,17 +128,18 @@
   gap: 12px;
   margin-top: 14px;
   padding: 12px;
-  background: var(--line-soft);
-  border-radius: 10px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
 }
 
 .redeem-qty-label {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  font-weight: 400;
   color: var(--ink-soft);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
@@ -169,27 +153,31 @@
 .redeem-qty-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   background: var(--paper-card);
   color: var(--ink);
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
-  font-size: 16px;
+  font-family: var(--font-pixel-body);
+  font-size: 20px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all var(--transition);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
 }
 
 .redeem-qty-btn:hover {
   background: var(--sage);
-  color: #fff;
+  color: #0a1a0a;
   border-color: var(--sage);
+  box-shadow: 0 2px 0 #1a6b3a;
 }
 
 .redeem-qty-btn:active {
-  transform: scale(0.92);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .redeem-qty-btn:disabled {
@@ -198,12 +186,13 @@
   background: var(--line-soft);
   color: var(--ink-soft);
   border-color: var(--line);
+  box-shadow: none;
 }
 
 .redeem-qty-value {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: 400;
   color: var(--ink);
   min-width: 36px;
   text-align: center;
@@ -216,19 +205,20 @@
   align-items: center;
   padding: 8px 12px;
   background: var(--paper-card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
 }
 
 .redeem-qty-total-label {
-  font-size: 12px;
+  font-family: var(--font-pixel-body);
+  font-size: 14px;
   color: var(--ink-soft);
 }
 
 .redeem-qty-total-pts {
-  font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: 700;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  font-weight: 400;
   color: var(--sage);
 }
 
@@ -238,19 +228,20 @@
 
 /* ============ Store: Not Enough Points & Sort ============ */
 .store-card.cant-afford {
-  opacity: 0.65;
+  opacity: 0.55;
 }
 .store-card.cant-afford:hover {
-  opacity: 0.85;
+  opacity: 0.75;
 }
 .store-card-not-enough {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  font-weight: 400;
   color: var(--danger);
   background: var(--danger-light);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   display: inline-block;
   align-self: flex-start;
 }
@@ -260,11 +251,12 @@
   gap: 6px;
   margin-left: 8px;
   padding-left: 8px;
-  border-left: 1px solid var(--line);
+  border-left: 2px solid var(--line);
 }
 .store-sort-label {
-  font-size: 11px;
+  font-family: var(--font-pixel-body);
+  font-size: 14px;
   color: var(--ink-soft);
-  font-weight: 600;
+  font-weight: 400;
   white-space: nowrap;
 }
