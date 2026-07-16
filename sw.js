@@ -1,5 +1,5 @@
 /* ============ sw.js — Service Worker ============ */
-const CACHE_NAME = "gol-cache-v3.3";
+const CACHE_NAME = "gol-cache-v3.4";
 const DEFAULT_INVENTORY_URL = "/default-inventory.json";
 
 const SHELL_URLS = [
