@@ -341,98 +341,107 @@
       </div>
 
       <!-- Unified Virtual Pet Panel -->
-      <div class="pet-panel-content">
-        <!-- Left Side: Interactive Pet and Pet Info -->
-        <div class="pet-column-left">
-          <div class="pet-screen-frame">
-            <div class="pet-screen-scanlines"></div>
-            <div class="pet-screen-overlay"></div>
-            <!-- Background Layer -->
-            <div class="pet-bg-layer animated" id="petBg"></div>
-            
-            <!-- Speech Bubble -->
-            <div class="pet-speech-bubble" id="petBubble" style="display: none;"></div>
-            
-            <!-- Interactive Character container -->
-            <div class="pet-character-container" id="petCharacterContainer">
-              <div class="pet-sprite normal" id="petSprite"></div>
-            </div>
+      <div class="pet-panel-card expandable">
+        <div class="pet-panel-header expandable-toggle">
+          <div class="pet-panel-header-title">
+            <span class="pet-panel-header-icon">&#128054;</span>
+            <span id="petPanelTitleText">Virtual Pet & Companion</span>
           </div>
-          
-          <div class="pet-controls">
-            <div class="pet-status-stats">
-              <div class="pet-status-item" id="petStatusName">Pet: <span id="petNameVal">Slimey</span></div>
-              <div class="pet-status-item" id="petStatusMood">Mood: <span id="petMoodVal">Normal</span></div>
-              <div class="pet-status-item" id="petStatusAge">Age: <span id="petAgeVal">1 day</span></div>
-            </div>
-          </div>
+          <span class="expandable-chevron">&#9660;</span>
         </div>
-
-        <!-- Right Side: RPG Stats and Items Acquired -->
-        <div class="pet-column-right">
-          <div class="rpg-stats-panel expandable" id="lifeStatsSection">
-            <div class="rpg-level-badge expandable-toggle">
-              <div class="rpg-level-icon">&#9733;</div>
-              <div class="rpg-level-info">
-                <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
-                <div class="rpg-level-bar-wrap">
-                  <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
-                  <span class="rpg-level-pts" id="lifeLevelPts"></span>
-                </div>
+        <div class="pet-panel-content expandable-body">
+          <!-- Left Side: Interactive Pet and Pet Info -->
+          <div class="pet-column-left">
+            <div class="pet-screen-frame">
+              <div class="pet-screen-scanlines"></div>
+              <div class="pet-screen-overlay"></div>
+              <!-- Background Layer -->
+              <div class="pet-bg-layer animated" id="petBg"></div>
+              
+              <!-- Speech Bubble -->
+              <div class="pet-speech-bubble" id="petBubble" style="display: none;"></div>
+              
+              <!-- Interactive Character container -->
+              <div class="pet-character-container" id="petCharacterContainer">
+                <div class="pet-sprite normal" id="petSprite"></div>
               </div>
-              <span class="expandable-chevron">&#9660;</span>
             </div>
-            <div class="rpg-stats-grid expandable-body" id="lifeStatsGrid">
-              <div class="rpg-stat" data-stat="health">
-                <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
-                <div class="rpg-stat-info">
-                  <div class="rpg-stat-row">
-                    <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
-                    <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
-                  </div>
-                  <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
-                </div>
-              </div>
-              <div class="rpg-stat" data-stat="energy">
-                <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
-                <div class="rpg-stat-info">
-                  <div class="rpg-stat-row">
-                    <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
-                    <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
-                  </div>
-                  <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
-                </div>
-              </div>
-              <div class="rpg-stat" data-stat="hunger">
-                <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
-                <div class="rpg-stat-info">
-                  <div class="rpg-stat-row">
-                    <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
-                    <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
-                  </div>
-                  <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
-                </div>
-              </div>
-              <div class="rpg-stat" data-stat="thirst">
-                <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
-                <div class="rpg-stat-info">
-                  <div class="rpg-stat-row">
-                    <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
-                    <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
-                  </div>
-                  <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
-                </div>
+            
+            <div class="pet-controls">
+              <div class="pet-status-stats">
+                <div class="pet-status-item" id="petStatusName">Pet: <span id="petNameVal">Slimey</span></div>
+                <div class="pet-status-item" id="petStatusMood">Mood: <span id="petMoodVal">Normal</span></div>
+                <div class="pet-status-item" id="petStatusAge">Age: <span id="petAgeVal">1 day</span></div>
               </div>
             </div>
           </div>
-          
-          <div class="life-items-panel">
-            <div class="life-items-head">
-              <span class="life-items-title">Acquired</span>
-              <span class="life-items-count" id="lifeTotalItems">0</span>
+
+          <!-- Right Side: RPG Stats and Items Acquired -->
+          <div class="pet-column-right">
+            <div class="rpg-stats-panel expandable" id="lifeStatsSection">
+              <div class="rpg-level-badge expandable-toggle">
+                <div class="rpg-level-icon">&#9733;</div>
+                <div class="rpg-level-info">
+                  <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
+                  <div class="rpg-level-bar-wrap">
+                    <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
+                    <span class="rpg-level-pts" id="lifeLevelPts"></span>
+                  </div>
+                </div>
+                <span class="expandable-chevron">&#9660;</span>
+              </div>
+              <div class="rpg-stats-grid expandable-body" id="lifeStatsGrid">
+                <div class="rpg-stat" data-stat="health">
+                  <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
+                  <div class="rpg-stat-info">
+                    <div class="rpg-stat-row">
+                      <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
+                      <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
+                    </div>
+                    <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
+                  </div>
+                </div>
+                <div class="rpg-stat" data-stat="energy">
+                  <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
+                  <div class="rpg-stat-info">
+                    <div class="rpg-stat-row">
+                      <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
+                      <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
+                    </div>
+                    <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
+                  </div>
+                </div>
+                <div class="rpg-stat" data-stat="hunger">
+                  <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
+                  <div class="rpg-stat-info">
+                    <div class="rpg-stat-row">
+                      <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
+                      <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
+                    </div>
+                    <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
+                  </div>
+                </div>
+                <div class="rpg-stat" data-stat="thirst">
+                  <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
+                  <div class="rpg-stat-info">
+                    <div class="rpg-stat-row">
+                      <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
+                      <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
+                    </div>
+                    <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="life-items-filters" id="lifeFilters"></div>
-            <div class="life-items-list" id="lifeGrid"></div>
+            
+            <div class="life-items-panel">
+              <div class="life-items-head">
+                <span class="life-items-title">Acquired</span>
+                <span class="life-items-count" id="lifeTotalItems">0</span>
+              </div>
+              <div class="life-items-filters" id="lifeFilters"></div>
+              <div class="life-items-list" id="lifeGrid"></div>
+            </div>
           </div>
         </div>
       </div>
