@@ -35,7 +35,7 @@ function renderStore() {
     btn.addEventListener("click", () => { activeStoreSort = opt.key; renderStore(); });
     sortEl.appendChild(btn);
   });
-  filtersEl.appendChild(sortEl);
+  document.getElementById("storeFilters").appendChild(sortEl);
 
   let storeItems = inventory.filter(item => item.quantity > 0);
   if (activeStoreFilter !== "all") {
