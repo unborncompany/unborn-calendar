@@ -199,21 +199,6 @@ function handlePetClick(e) {
 
 // Bind background switcher and interactive pet clicking
 document.addEventListener("DOMContentLoaded", () => {
-  const changeBgBtn = document.getElementById("petChangeBgBtn");
-  if (changeBgBtn) {
-    changeBgBtn.addEventListener("click", () => {
-      petBgMode = petBgMode === "animated" ? "simple" : "animated";
-      localStorage.setItem("pet_bg_mode", petBgMode);
-      
-      const petBg = document.getElementById("petBg");
-      if (petBg) {
-        petBg.className = `pet-bg-layer ${petBgMode}`;
-      }
-      
-      showToast(typeof lang === "string" && lang === "es" ? "Fondo cambiado." : "Background changed.");
-    });
-  }
-
   const petChar = document.getElementById("petCharacterContainer");
   if (petChar) {
     petChar.addEventListener("click", handlePetClick);
@@ -228,21 +213,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Fallback direct bindings in case DOMContentLoaded has already fired
 setTimeout(() => {
-  const changeBgBtn = document.getElementById("petChangeBgBtn");
-  if (changeBgBtn) {
-    changeBgBtn.onclick = () => {
-      petBgMode = petBgMode === "animated" ? "simple" : "animated";
-      localStorage.setItem("pet_bg_mode", petBgMode);
-      
-      const petBg = document.getElementById("petBg");
-      if (petBg) {
-        petBg.className = `pet-bg-layer ${petBgMode}`;
-      }
-      
-      showToast(typeof lang === "string" && lang === "es" ? "Fondo cambiado." : "Background changed.");
-    };
-  }
-
   const petChar = document.getElementById("petCharacterContainer");
   if (petChar) {
     petChar.onclick = handlePetClick;
