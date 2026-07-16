@@ -905,13 +905,7 @@
 }
 
 /* ============ Virtual Pet Panel ============ */
-.pet-panel-content {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 24px;
-  padding: 24px;
+.pet-panel-card {
   background: var(--paper-card);
   border: 2px solid var(--line);
   border-radius: var(--radius-lg);
@@ -919,8 +913,61 @@
   width: 100%;
   max-width: 100%;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--rpg-gold);
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.pet-panel-card.expanded .pet-panel-header {
+  border-bottom: 2px solid var(--line);
+}
+
+.pet-panel-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pet-panel-header-icon {
+  font-size: 16px;
+}
+
+.pet-panel-content {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 24px;
+  padding: 24px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.pet-panel-card.expanded .pet-panel-content {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.pet-panel-card:not(.expanded) .pet-panel-content {
+  padding: 0;
+  overflow: hidden;
 }
 
 /* Custom premium scrollbar for the scrollable panel */
