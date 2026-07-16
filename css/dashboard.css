@@ -276,6 +276,17 @@
   text-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
 }
 
+/* Completed text on todo items */
+.todo-completed-text {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--sage);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-left: 6px;
+  opacity: 0.8;
+}
+
 /* Timer badges */
 .timer-badge {
   font-family: var(--font-pixel);
@@ -1360,4 +1371,64 @@
 }
 .cal-list-notes:hover {
   opacity: 1;
+}
+
+/* ============ Expandable Panels ============ */
+.expandable .expandable-toggle {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.expandable-chevron {
+  font-size: 10px;
+  color: var(--ink-soft);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.expandable.expanded .expandable-chevron {
+  transform: rotate(180deg);
+}
+
+.expandable .expandable-body {
+  transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+  overflow: hidden;
+}
+
+.expandable:not(.expanded) .expandable-body {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border: none;
+  pointer-events: none;
+}
+
+.expandable.expanded .expandable-body {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* Day section expandable */
+.dash-day-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.dash-day-header .dash-day-title {
+  margin: 0;
+}
+
+.dash-day-header .subtle {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-day-header .expandable-chevron {
+  align-self: center;
 }
