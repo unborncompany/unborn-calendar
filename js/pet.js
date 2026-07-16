@@ -186,6 +186,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (petChar) {
     petChar.addEventListener("click", handlePetClick);
   }
+
+  // Initialize pet on load
+  if (typeof renderPet === "function") {
+    renderPet();
+  }
 });
 
 // Fallback direct bindings in case DOMContentLoaded has already fired
@@ -208,5 +213,10 @@ setTimeout(() => {
   const petChar = document.getElementById("petCharacterContainer");
   if (petChar) {
     petChar.onclick = handlePetClick;
+  }
+
+  // Fallback initialize
+  if (typeof renderPet === "function") {
+    renderPet();
   }
 }, 500);
