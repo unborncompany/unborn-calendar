@@ -1,11 +1,12 @@
 /* ============ sw.js — Service Worker ============ */
-const CACHE_NAME = "gol-cache-v2.3";
+const CACHE_NAME = "gol-cache-v2.4";
+const DEFAULT_INVENTORY_URL = "/default-inventory.json";
 
 const SHELL_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/default-inventory.json",
+  DEFAULT_INVENTORY_URL,
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/css/base.css",
@@ -35,93 +36,79 @@ const SHELL_URLS = [
   "/js/init.js",
 ];
 
-/* Domains to never intercept */
 const BYPASS_DOMAINS = [
-  "www.gstatic.com",
-  "googleapis.com",
-  "firestore.googleapis.com",
-  "firebaseio.com",
-  "accounts.google.com",
+  "www.gstatic.com", "googleapis.com", "firestore.googleapis.com",
+  "firebaseio.com", "accounts.google.com"
 ];
-const BYPASS_HOSTS = BYPASS_DOMAINS.map(d => d.replace(/\./g, "\\.").replace(/\*/g, ".*"));
 
 function shouldBypass(url) {
   try {
     const host = new URL(url).hostname;
-    return BYPASS_HOSTS.some(pattern => new RegExp("^" + pattern + "$").test(host)) ||
-           BYPASS_DOMAINS.some(d => host === d || host.endsWith("." + d));
-  } catch (_) {
-    return false;
-  }
+    return BYPASS_DOMAINS.some(d => host === d || host.endsWith("." + d));
+  } catch (_) { return false; }
 }
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      console.log("Service Worker: Caching app shell");
-      await cache.addAll(SHELL_URLS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_URLS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil(self.clients.claim());
 });
 
+// Force fresh default-inventory.json and delete old cache if changed
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   if (request.method !== "GET") return;
   if (shouldBypass(request.url)) return;
 
-  // Force fresh default-inventory.json when online
+  // Special handling for default-inventory.json
   if (request.url.includes("default-inventory.json")) {
-    if (navigator.onLine) {
-      event.respondWith(
-        fetch(request, { cache: "no-store" })
-          .then(response => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-            return response;
-          })
-          .catch(() => caches.match(request))
-      );
-      return;
-    }
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Network error");
+
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(request, response.clone()); // Update cache
+          return response;
+        })
+        .catch(async () => {
+          // Offline fallback
+          return caches.match(request);
+        })
+    );
+    return;
   }
 
-  // Navigation requests (HTML) — network first, fallback to index.html
+  // Normal navigation requests
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          const clone = response.clone();
+        .then(res => {
+          const clone = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-          return response;
+          return res;
         })
         .catch(() => caches.match("/index.html"))
     );
     return;
   }
 
-  // Static assets — Cache-first with network revalidation
+  // Static assets - Cache first, then network
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const networkFetch = fetch(request).then((response) => {
-        if (response && response.ok) {
+    caches.match(request).then(cached => {
+      return cached || fetch(request).then(response => {
+        if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
         }
         return response;
       }).catch(() => cached);
-
-      return cached || networkFetch;
     })
   );
 });
