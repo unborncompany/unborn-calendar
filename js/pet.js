@@ -92,6 +92,8 @@ function showPetSpeech(text) {
   }, 4500);
 }
 
+let isAnimatingClick = false;
+
 function renderPet() {
   const petBg = document.getElementById("petBg");
   const petSprite = document.getElementById("petSprite");
@@ -108,6 +110,11 @@ function renderPet() {
 
   // Set pet sprite css class to match animation speed/style
   petSprite.className = `pet-sprite ${mood}`;
+
+  // Ensure virtual_pet_sprite.png is always correctly refreshed
+  if (!petSprite.classList.contains("clicked")) {
+    petSprite.style.backgroundImage = `url('/icons/virtual_pet_sprite.png?t=${Date.now()}')`;
+  }
 
   // Set mood text
   const currentLang = typeof lang === "string" ? lang : "en";
@@ -135,8 +142,26 @@ function renderPet() {
 
 // Function to handle clicking the pet and spawning particles
 function handlePetClick(e) {
+  if (e) {
+    // Only call preventDefault on touchstart to prevent synthetic click lag/double triggers
+    if (e.type === "touchstart") {
+      e.preventDefault();
+    }
+  }
+
+  if (isAnimatingClick) return;
+  isAnimatingClick = true;
+
   const container = document.getElementById("petCharacterContainer");
-  if (!container) return;
+  const petSprite = document.getElementById("petSprite");
+  if (!container || !petSprite) {
+    isAnimatingClick = false;
+    return;
+  }
+
+  // Trigger the click animation state with virtual_pet_idle_click.png
+  petSprite.classList.add("clicked");
+  petSprite.style.backgroundImage = `url('/icons/virtual_pet_idle_click.png?t=${Date.now()}')`;
 
   // Create floating emoji particle
   const emojis = ["❤️", "✨", "🫧", "⭐", "🥰"];
@@ -163,6 +188,13 @@ function handlePetClick(e) {
   const messages = (PET_MESSAGES[currentLang] || PET_MESSAGES.en)[mood];
   const randomMsg = messages[Math.floor(Math.random() * messages.length)];
   showPetSpeech(randomMsg);
+
+  // After 600ms, restore the normal state and refresh normal sprite
+  setTimeout(() => {
+    petSprite.classList.remove("clicked");
+    petSprite.style.backgroundImage = `url('/icons/virtual_pet_sprite.png?t=${Date.now()}')`;
+    isAnimatingClick = false;
+  }, 600);
 }
 
 // Bind background switcher and interactive pet clicking
@@ -185,6 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const petChar = document.getElementById("petCharacterContainer");
   if (petChar) {
     petChar.addEventListener("click", handlePetClick);
+    petChar.addEventListener("touchstart", handlePetClick, { passive: false });
   }
 
   // Initialize pet on load
@@ -213,6 +246,7 @@ setTimeout(() => {
   const petChar = document.getElementById("petCharacterContainer");
   if (petChar) {
     petChar.onclick = handlePetClick;
+    petChar.ontouchstart = handlePetClick;
   }
 
   // Fallback initialize

@@ -245,7 +245,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     if (btn.dataset.tab === "inventory") renderInventory();
     if (btn.dataset.tab === "store") renderStore();
     if (btn.dataset.tab === "pet") { if (typeof renderPet === "function") renderPet(); }
-    if (btn.dataset.tab === "life") { renderLife(); renderDashboard(); }
+    if (btn.dataset.tab === "life") { renderLife(); renderDashboard(); if (typeof renderPet === "function") renderPet(); }
     if (btn.dataset.tab === "settings") { updateSoundUI(); renderMoodStatesSettings(); }
   });
 });
