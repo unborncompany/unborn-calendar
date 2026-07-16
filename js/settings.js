@@ -273,6 +273,9 @@ function applyTranslations() {
   document.getElementById("invAddBtn").textContent = t("inv_addItem");
   document.getElementById("invExportBtn").textContent = t("settings_export");
   document.getElementById("invImportLabel").textContent = t("settings_import");
+  if (document.getElementById("invResetBtn")) {
+    document.getElementById("invResetBtn").textContent = t("inv_resetBtn");
+  }
   document.querySelector(".inv-table-head .inv-col-name").textContent = t("inv_colItem");
   document.querySelector(".inv-table-head .inv-col-price").textContent = t("inv_colPrice");
   document.querySelector(".inv-table-head .inv-col-qty").textContent = t("inv_colQty");

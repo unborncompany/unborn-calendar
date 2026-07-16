@@ -126,22 +126,48 @@ async function syncWithLatestInventory() {
   }
 }
 
-function loadInventory() {
-  try {
-    const raw = localStorage.getItem(INV_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        inventory = parsed;
-        console.log(`Loaded ${inventory.length} items from localStorage`);
-        return Promise.resolve();
-      }
-    }
-  } catch (e) {
-    console.error("Could not read inventory from storage:", e);
-  }
+// Reset inventory to latest default version
+async function resetInventoryToDefault() {
+  if (!confirm(t("inv_resetConfirm"))) return;
 
-  return loadDefaultInventory();
+  try {
+    const defaultData = await loadDefaultInventory();
+    if (Array.isArray(defaultData) && defaultData.length > 0) {
+      inventory = defaultData;
+      saveInventory();
+      
+      // Update UI across components
+      if (typeof refreshAll === "function") {
+        refreshAll();
+      } else {
+        renderInventory();
+        const storePanel = document.getElementById("panel-store");
+        if (storePanel && typeof renderStore === "function") {
+          renderStore();
+        }
+      }
+      
+      showToast(t("toast_invReset"));
+    } else {
+      console.error("Fetched default inventory is empty or invalid.");
+    }
+  } catch (err) {
+    console.error("Failed to reset inventory:", err);
+  }
+}
+
+// Bind reset inventory button click event
+document.addEventListener("DOMContentLoaded", () => {
+  const resetBtn = document.getElementById("invResetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", resetInventoryToDefault);
+  }
+});
+
+// Fallback click binding in case DOMContentLoaded has already fired
+const resetBtn = document.getElementById("invResetBtn");
+if (resetBtn) {
+  resetBtn.addEventListener("click", resetInventoryToDefault);
 }
 
 

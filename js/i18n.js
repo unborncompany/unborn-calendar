@@ -325,6 +325,9 @@ const I18N = {
     store_sortAz: "A-Z",
     store_sortPriceAsc: "Price \u2191",
     store_sortPriceDesc: "Price \u2193",
+    inv_resetBtn: "Reset inventory",
+    inv_resetConfirm: "Reset inventory to default version? This will overwrite your quantities and custom items. This cannot be undone.",
+    toast_invReset: "Inventory reset to default.",
   },
   es: {
     tab_dashboard: "Panel",
@@ -633,6 +636,9 @@ const I18N = {
     store_sortAz: "A-Z",
     store_sortPriceAsc: "Precio \u2191",
     store_sortPriceDesc: "Precio \u2193",
+    inv_resetBtn: "Restablecer inventario",
+    inv_resetConfirm: "¿Restablecer el inventario a la versión predeterminada? Esto sobrescribirá tus cantidades y artículos personalizados. Esto no se puede deshacer.",
+    toast_invReset: "Inventario restablecido al valor predeterminado.",
   },
 };
 
