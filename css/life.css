@@ -910,15 +910,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 24px;
+  gap: 16px;
+  padding: 16px;
   background: var(--paper-card);
   border: 2px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   width: 100%;
-  max-width: 480px;
-  margin: 20px auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 .pet-screen-frame {
@@ -1028,6 +1028,20 @@
 .pet-sprite.sleepy {
   animation: pet-idle 2.0s infinite;
   transform: translateY(10px) scaleY(0.8);
+}
+
+.pet-sprite.clicked {
+  background-image: url('/icons/virtual_pet_idle_click.png') !important;
+  animation: pet-click-anim 0.6s infinite !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+@keyframes pet-click-anim {
+  0%, 24.9% { background-position: 0% 0; }
+  25%, 49.9% { background-position: 33.333% 0; }
+  50%, 74.9% { background-position: 66.666% 0; }
+  75%, 100% { background-position: 100% 0; }
 }
 
 @keyframes pet-idle {
