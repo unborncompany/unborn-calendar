@@ -244,6 +244,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     if (btn.dataset.tab === "calendar") applyCalView();
     if (btn.dataset.tab === "inventory") renderInventory();
     if (btn.dataset.tab === "store") renderStore();
+    if (btn.dataset.tab === "pet") { if (typeof renderPet === "function") renderPet(); }
     if (btn.dataset.tab === "life") { renderLife(); renderDashboard(); }
     if (btn.dataset.tab === "settings") { updateSoundUI(); renderMoodStatesSettings(); }
   });
@@ -256,8 +257,22 @@ function applyTranslations() {
   // Tabs
   document.querySelector('[data-tab="calendar"]').textContent = t("tab_calendar");
   document.querySelector('[data-tab="store"]').textContent = t("store_title");
+  if (document.querySelector('[data-tab="pet"]')) {
+    document.querySelector('[data-tab="pet"]').textContent = t("tab_pet");
+  }
   document.querySelector('[data-tab="life"]').textContent = t("life_title");
   document.querySelector('[data-tab="settings"]').textContent = t("tab_settings");
+
+  // Pet Panel
+  if (document.getElementById("petTitle")) {
+    document.getElementById("petTitle").textContent = t("pet_title");
+  }
+  if (document.getElementById("petSummary")) {
+    document.getElementById("petSummary").textContent = t("pet_summary");
+  }
+  if (document.getElementById("petChangeBgBtn")) {
+    document.getElementById("petChangeBgBtn").textContent = t("pet_changeBg");
+  }
   // Header
   document.getElementById("quickAddBtn").textContent = t("btn_newEntry");
   document.getElementById("quickSaveBtn").textContent = t("btn_quickSave");

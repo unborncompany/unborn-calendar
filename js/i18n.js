@@ -6,7 +6,13 @@ const I18N = {
     // Tabs
     tab_dashboard: "Dashboard",
     tab_calendar: "Calendar",
+    tab_pet: "Virtual Pet",
     tab_settings: "Settings",
+    pet_title: "Virtual Pet",
+    pet_summary: "Interact with your digital companion! Click the pet to play.",
+    pet_mood: "Mood",
+    pet_age: "Age",
+    pet_changeBg: "Change Background",
     // Header
     btn_newEntry: "+ New entry",
     btn_quickSave: "\u{1F4BE} Quick save",
@@ -332,7 +338,13 @@ const I18N = {
   es: {
     tab_dashboard: "Panel",
     tab_calendar: "Calendario",
+    tab_pet: "Mascota Virtual",
     tab_settings: "Ajustes",
+    pet_title: "Mascota Virtual",
+    pet_summary: "¡Interactúa con tu compañero digital! Haz clic en la mascota para jugar.",
+    pet_mood: "Estado",
+    pet_age: "Edad",
+    pet_changeBg: "Cambiar Fondo",
     btn_newEntry: "+ Nueva entrada",
     btn_quickSave: "\u{1F4BE} Guardar r\u00e1pido",
     dash_nothingToday: "Nada hoy.",
