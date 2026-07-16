@@ -104,6 +104,11 @@ function renderPet() {
 
   // Render Background layer
   petBg.className = `pet-bg-layer ${petBgMode}`;
+  if (petBgMode === "animated") {
+    petBg.style.backgroundImage = "url('/icons/pet_bg_animated.png')";
+  } else {
+    petBg.style.backgroundImage = "url('/icons/pet_bg_simple.png')";
+  }
 
   // Calculate mood based on player lifeStats
   const mood = getPetMood();
