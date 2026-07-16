@@ -113,6 +113,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 
 /* Responsive for life hero row */
+@media (max-width: 1024px) and (min-width: 721px) {
+  .life-hero-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
 @media (max-width: 720px) {
   .life-hero-row {
     grid-template-columns: 1fr;

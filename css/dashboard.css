@@ -1192,7 +1192,7 @@
 /* ============ Life Hero Row (Greeting + RPG Stats + Items) ============ */
 .life-hero-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
+  grid-template-columns: 1fr 1.1fr 1fr 1.2fr;
   gap: 20px;
   align-items: start;
   margin-bottom: 24px;
