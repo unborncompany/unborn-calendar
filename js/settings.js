@@ -88,6 +88,10 @@ function applySaveData(data) {
       pointsAwardedAt: e.pointsAwardedAt || null,
     }));
   }
+  // After applySaveData(data) finishes
+if (typeof window.refreshDefaultInventory === "function") {
+  window.refreshDefaultInventory();
+}
   if (data.inventory && Array.isArray(data.inventory)) inventory = data.inventory;
   if (data.secTasks && Array.isArray(data.secTasks)) {
     secTasks = data.secTasks.map(s => ({
@@ -560,10 +564,11 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   applyTheme();
   applyTranslations();
   // Reload inventory from localStorage (which will load defaults if empty)
-  loadInventory();
-  refreshAll();
-  showToast(t("toast_deleted"));
-  scheduleCloudSave();
+  loadInventory().then(() => {
+    refreshAll();
+    showToast(t("toast_deleted"));
+    scheduleCloudSave();
+  });
 });
 
 function refreshAll() {
