@@ -1,5 +1,5 @@
 /* ============ sw.js — Service Worker ============ */
-const CACHE_NAME = "gol-cache-v2";
+const CACHE_NAME = "gol-cache-v3";
 
 const SHELL_URLS = [
   "/",
