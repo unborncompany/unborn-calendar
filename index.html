@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#0d0f1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
 <title>Game of Life — Daily Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/buttons.css">
@@ -331,12 +331,77 @@
 
   <!-- Life -->
   <main class="tab-panel active" id="panel-life">
-    <!-- Dashboard -->
-    <div class="dash-greeting">
-      <h2 id="dashGreeting"></h2>
-      <p class="subtle" id="dashTaskMsg"></p>
-      <p class="subtle" id="dashExpectedPts"></p>
+    <!-- Hero row: Greeting + RPG Stats + Acquired Items -->
+    <div class="life-hero-row">
+      <div class="dash-greeting">
+        <h2 id="dashGreeting"></h2>
+        <p class="subtle" id="dashTaskMsg"></p>
+        <p class="subtle" id="dashExpectedPts"></p>
+      </div>
+      <div class="rpg-stats-panel" id="lifeStatsSection">
+        <div class="rpg-level-badge">
+          <div class="rpg-level-icon">&#9733;</div>
+          <div class="rpg-level-info">
+            <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
+            <div class="rpg-level-bar-wrap">
+              <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
+              <span class="rpg-level-pts" id="lifeLevelPts"></span>
+            </div>
+          </div>
+        </div>
+        <div class="rpg-stats-grid" id="lifeStatsGrid">
+          <div class="rpg-stat" data-stat="health">
+            <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
+            <div class="rpg-stat-info">
+              <div class="rpg-stat-row">
+                <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
+                <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
+              </div>
+              <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
+            </div>
+          </div>
+          <div class="rpg-stat" data-stat="energy">
+            <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
+            <div class="rpg-stat-info">
+              <div class="rpg-stat-row">
+                <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
+                <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
+              </div>
+              <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
+            </div>
+          </div>
+          <div class="rpg-stat" data-stat="hunger">
+            <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
+            <div class="rpg-stat-info">
+              <div class="rpg-stat-row">
+                <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
+                <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
+              </div>
+              <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
+            </div>
+          </div>
+          <div class="rpg-stat" data-stat="thirst">
+            <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
+            <div class="rpg-stat-info">
+              <div class="rpg-stat-row">
+                <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
+                <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
+              </div>
+              <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="life-items-panel">
+        <div class="life-items-head">
+          <span class="life-items-title">Acquired</span>
+          <span class="life-items-count" id="lifeTotalItems">0</span>
+        </div>
+        <div class="life-items-filters" id="lifeFilters"></div>
+        <div class="life-items-list" id="lifeGrid"></div>
+      </div>
     </div>
+
     <div id="dashMoodCheckin"></div>
     <div class="dash-two-col">
       <div class="dash-main">
@@ -373,78 +438,25 @@
           <button class="btn btn-primary btn-small" id="secSaveBtn">Save</button>
           <button class="btn btn-ghost btn-small" id="secCancelBtn">Cancel</button>
         </div>
+
+        <!-- Today's Notes -->
+        <div class="dash-notes-panel">
+          <div class="panel-head dash-notes-head">
+            <div>
+              <h2>Today's Notes</h2>
+              <p class="subtle" id="notesSummary">Quick notes for today.</p>
+            </div>
+          </div>
+          <div id="notesList" class="notes-list"></div>
+          <div class="notes-input-area" id="notesInputArea">
+            <textarea id="notesInput" placeholder="Write a quick note..." maxlength="500" rows="2"></textarea>
+            <button class="btn btn-primary btn-small" id="notesSaveBtn">Save</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <div id="dashMoodOverview"></div>
-
-    <!-- Life -->
-    <div class="panel-head" style="margin-top:24px">
-      <div>
-        <h2 id="lifeTitle">Life</h2>
-        <p class="subtle" id="lifeSummary">Your acquired items from the store.</p>
-      </div>
-      <div class="life-hero-pts">
-        <span class="life-hero-label" id="lifeTotalLabel">Total items redeemed</span>
-        <span class="life-hero-num" id="lifeTotalItems">0</span>
-      </div>
-    </div>
-    <div class="rpg-stats-panel" id="lifeStatsSection">
-      <div class="rpg-level-badge">
-        <div class="rpg-level-icon">&#9733;</div>
-        <div class="rpg-level-info">
-          <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
-          <div class="rpg-level-bar-wrap">
-            <div class="rpg-level-bar"><div class="rpg-level-fill" id="lifeLevelFill"></div></div>
-            <span class="rpg-level-pts" id="lifeLevelPts"></span>
-          </div>
-        </div>
-      </div>
-      <div class="rpg-stats-grid" id="lifeStatsGrid">
-        <div class="rpg-stat" data-stat="health">
-          <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
-          <div class="rpg-stat-info">
-            <div class="rpg-stat-row">
-              <span class="rpg-stat-label" id="lifeStatHealthLabel">Health</span>
-              <span class="rpg-stat-num" id="lifeStatHealthValue">95</span>
-            </div>
-            <div class="rpg-bar"><div class="rpg-bar-fill bar-health" id="lifeStatHealthFill"></div></div>
-          </div>
-        </div>
-        <div class="rpg-stat" data-stat="energy">
-          <div class="rpg-stat-icon rpg-icon-energy">&#9889;</div>
-          <div class="rpg-stat-info">
-            <div class="rpg-stat-row">
-              <span class="rpg-stat-label" id="lifeStatEnergyLabel">Energy</span>
-              <span class="rpg-stat-num" id="lifeStatEnergyValue">80</span>
-            </div>
-            <div class="rpg-bar"><div class="rpg-bar-fill bar-energy" id="lifeStatEnergyFill"></div></div>
-          </div>
-        </div>
-        <div class="rpg-stat" data-stat="hunger">
-          <div class="rpg-stat-icon rpg-icon-hunger">&#127830;</div>
-          <div class="rpg-stat-info">
-            <div class="rpg-stat-row">
-              <span class="rpg-stat-label" id="lifeStatHungerLabel">Hunger</span>
-              <span class="rpg-stat-num" id="lifeStatHungerValue">50</span>
-            </div>
-            <div class="rpg-bar"><div class="rpg-bar-fill bar-hunger" id="lifeStatHungerFill"></div></div>
-          </div>
-        </div>
-        <div class="rpg-stat" data-stat="thirst">
-          <div class="rpg-stat-icon rpg-icon-thirst">&#128167;</div>
-          <div class="rpg-stat-info">
-            <div class="rpg-stat-row">
-              <span class="rpg-stat-label" id="lifeStatThirstLabel">Thirst</span>
-              <span class="rpg-stat-num" id="lifeStatThirstValue">70</span>
-            </div>
-            <div class="rpg-bar"><div class="rpg-bar-fill bar-thirst" id="lifeStatThirstFill"></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="filter-group" id="lifeFilters"></div>
-    <div class="life-grid" id="lifeGrid"></div>
   </main>
 
 </div>
@@ -623,6 +635,21 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="redeemCancelBtn">Cancel</button>
       <button type="button" class="btn btn-primary" id="redeemConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes View Modal -->
+<div class="modal-overlay" id="notesModalOverlay">
+  <div class="modal" id="notesModal">
+    <div class="modal-head">
+      <h3 id="notesModalTitle">Notes</h3>
+      <button class="icon-btn" id="notesModalClose">&times;</button>
+    </div>
+    <div class="notes-modal-date" id="notesModalDate"></div>
+    <div id="notesModalContent"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="notesModalCloseBtn">Close</button>
     </div>
   </div>
 </div>
