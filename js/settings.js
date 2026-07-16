@@ -536,6 +536,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   localStorage.removeItem(MOOD_POINTS_KEY);
   localStorage.removeItem(NOTES_KEY);
   entries = [];
+  inventory = [];
   secTasks = [];
   deletedSecTasks = [];
   userProfile = { name: "", nickname: "", phone: "" };
@@ -558,9 +559,11 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   syncCalViewButtons();
   applyTheme();
   applyTranslations();
-  refreshAll();
-  showToast(t("toast_deleted"));
-  scheduleCloudSave();
+  loadDefaultInventory().then(() => {
+    refreshAll();
+    showToast(t("toast_deleted"));
+    scheduleCloudSave();
+  });
 });
 
 function refreshAll() {

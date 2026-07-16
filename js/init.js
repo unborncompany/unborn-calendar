@@ -132,18 +132,58 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-// Load default inventory if none exists
-if (inventory.length === 0) {
-  fetch("default-inventory.json")
+// Load default inventory from JSON file (cache-first for offline support)
+function loadDefaultInventory() {
+  // Try cache first (for offline support)
+  if ("caches" in window) {
+    return caches.open("gol-cache-v1").then(cache => {
+      return cache.match("default-inventory.json").then(cached => {
+        if (cached) {
+          return cached.json().then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              inventory = data;
+              saveInventory();
+              return data;
+            }
+          });
+        }
+        // Fall back to network if cache miss
+        return fetch("default-inventory.json")
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              inventory = data;
+              saveInventory();
+            }
+          });
+      });
+    }).catch(() => {
+      // If cache API fails, try direct fetch
+      return fetch("default-inventory.json")
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            inventory = data;
+            saveInventory();
+          }
+        });
+    });
+  }
+  // No cache API available, use direct fetch
+  return fetch("default-inventory.json")
     .then(res => res.json())
     .then(data => {
       if (Array.isArray(data) && data.length > 0) {
         inventory = data;
         saveInventory();
       }
-      refreshAll();
     })
-    .catch(() => { refreshAll(); });
+    .catch(() => {});
+}
+
+// Load default inventory if none exists
+if (inventory.length === 0) {
+  loadDefaultInventory().then(() => refreshAll());
 }
 
 /* ============ Service Worker update detection ============ */
