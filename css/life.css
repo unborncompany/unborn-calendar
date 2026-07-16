@@ -962,7 +962,10 @@
 
 .pet-bg-layer {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center;
   transition: background-image 0.3s;
@@ -970,13 +973,13 @@
 }
 
 .pet-bg-layer.animated {
-  background-image: url('../icons/pet_bg_animated.png');
+  background-image: url('/icons/pet_bg_animated.png');
   background-size: 200% 100%;
   animation: bg-twinkle 1.5s infinite;
 }
 
 .pet-bg-layer.simple {
-  background-image: url('../icons/pet_bg_simple.png');
+  background-image: url('/icons/pet_bg_simple.png');
   background-size: cover;
   background-position: center;
 }
@@ -1003,7 +1006,7 @@
 .pet-sprite {
   width: 100%;
   height: 100%;
-  background-image: url('../icons/virtual_pet_sprite.png');
+  background-image: url('/icons/virtual_pet_sprite.png');
   background-size: 400% 100%;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
