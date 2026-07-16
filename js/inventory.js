@@ -1,6 +1,6 @@
 /* ============ inventory.js — Inventory Management ============ */
 
-const INV_STORAGE_KEY = "ledger.inventory.v2.5";
+const INV_STORAGE_KEY = "ledger.inventory.v2.6";
 const INV_CATEGORIES = ["Electronics", "Food & Drinks", "Clothing", "Office Supplies", "Tools", "Furniture", "Other"];
 let inventory = [];
 let activeInvFilter = "all";
@@ -27,7 +27,7 @@ async function loadDefaultInventory() {
   // Fallback to cache
   if ("caches" in window) {
     try {
-      const cache = await caches.open("gol-cache-v2.5");
+      const cache = await caches.open("gol-cache-v2.6");
       const cached = await cache.match(defaultUrl);
       if (cached) {
         const data = await cached.json();
