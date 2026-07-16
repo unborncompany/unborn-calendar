@@ -6,53 +6,85 @@ let inventory = [];
 let activeInvFilter = "all";
 let expandedInvId = null;
 
-// Load default inventory from JSON file (cache-first for offline support)
-function loadDefaultInventory() {
-  // Try cache first (for offline support)
-  if ("caches" in window) {
-    return caches.open("gol-cache-v1").then(cache => {
-      return cache.match("default-inventory.json").then(cached => {
-        if (cached) {
-          return cached.json().then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              inventory = data;
-              saveInventory();
-              return data;
-            }
-          });
-        }
-        // Fall back to network if cache miss
-        return fetch("default-inventory.json")
-          .then(res => res.json())
-          .then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              inventory = data;
-              saveInventory();
-            }
-          });
-      });
-    }).catch(() => {
-      // If cache API fails, try direct fetch
-      return fetch("default-inventory.json")
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            inventory = data;
-            saveInventory();
-          }
-        });
-    });
-  }
-  // No cache API available, use direct fetch
-  return fetch("default-inventory.json")
-    .then(res => res.json())
-    .then(data => {
+// Load default inventory — always tries to get the freshest version
+async function loadDefaultInventory() {
+  console.log("Loading latest default inventory...");
+
+  const defaultUrl = "default-inventory.json";
+
+  try {
+    // Try network first (for latest version)
+    const res = await fetch(defaultUrl, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        console.log(`Loaded ${data.length} items from network (latest)`);
         inventory = data;
         saveInventory();
+        return data;
       }
-    })
-    .catch(() => {});
+    }
+  } catch (e) {
+    console.warn("Network fetch for default inventory failed, using cache fallback", e);
+  }
+
+  // Fallback to cache
+  if ("caches" in window) {
+    try {
+      const cache = await caches.open("gol-cache-v1");
+      const cached = await cache.match(defaultUrl);
+      if (cached) {
+        const data = await cached.json();
+        if (Array.isArray(data) && data.length > 0) {
+          console.log(`Loaded ${data.length} items from cache`);
+          inventory = data;
+          saveInventory();
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn("Cache fallback failed", e);
+    }
+  }
+
+  console.warn("Could not load default inventory from any source");
+  return [];
+}
+
+// Sync with latest default inventory when online
+async function syncWithLatestInventory() {
+  if (!navigator.onLine) return;
+  
+  console.log("Syncing with latest default inventory...");
+  try {
+    const res = await fetch("default-inventory.json", { cache: "no-store" });
+    if (!res.ok) return;
+
+    const latestData = await res.json();
+    if (!Array.isArray(latestData) || latestData.length === 0) return;
+
+    const latestIds = new Set(latestData.map(item => item.id));
+
+    // Remove items that no longer exist in latest version
+    inventory = inventory.filter(item => latestIds.has(item.id));
+
+    // Add / update items
+    latestData.forEach(latestItem => {
+      const existing = inventory.findIndex(i => i.id === latestItem.id);
+      if (existing === -1) {
+        inventory.push(latestItem);
+      } else {
+        // Preserve user quantity but update other fields
+        const currentQty = inventory[existing].quantity;
+        inventory[existing] = { ...latestItem, quantity: currentQty };
+      }
+    });
+
+    saveInventory();
+    console.log("Default inventory synced successfully");
+  } catch (err) {
+    console.error("Failed to sync default inventory:", err);
+  }
 }
 
 function loadInventory() {
@@ -62,18 +94,39 @@ function loadInventory() {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         inventory = parsed;
-        return;
+        console.log(`Loaded ${inventory.length} items from localStorage`);
+        return Promise.resolve();
       }
     }
   } catch (e) {
-    console.error("Could not read inventory:", e);
+    console.error("Could not read inventory from storage:", e);
   }
-  // Fall back to default inventory from JSON file
-  loadDefaultInventory();
+
+  return loadDefaultInventory();
 }
 
-// Initialize inventory
-loadInventory();
+
+// Initialize
+loadInventory().then(() => {
+  console.log("Inventory initialization complete, total items:", inventory.length);
+  if (document.getElementById("panel-store").classList.contains("active")) {
+    renderStore();
+  }
+  if (document.getElementById("panel-inventory").classList.contains("active")) {
+    renderInventory();
+  }
+});
+
+// Periodic sync when online
+setInterval(() => {
+  if (navigator.onLine) syncWithLatestInventory();
+}, 5 * 60 * 1000); // every 5 minutes
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && navigator.onLine) {
+    syncWithLatestInventory();
+  }
+});
 
 function saveInventory() {
   try {
