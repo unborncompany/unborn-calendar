@@ -344,7 +344,8 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
           item.className = "life-entry-todo" + (todo.done ? " done" : "");
           const checkedAttr = todo.done ? " checked" : "";
           const disabledAttr = isCompleted ? " disabled" : "";
-          item.innerHTML = `<input type="checkbox" class="life-entry-check"${checkedAttr}${disabledAttr}> <span>${escapeHTML(todo.text)}</span>`;
+          const completedText = todo.done ? ' <span class="todo-completed-text">completed</span>' : '';
+          item.innerHTML = `<input type="checkbox" class="life-entry-check"${checkedAttr}${disabledAttr}> <span>${escapeHTML(todo.text)}</span>${completedText}`;
           if (!isCompleted) {
             item.querySelector("input").addEventListener("change", (e) => {
               if (e.target.checked && entry.createdAt && isCooldownActive(entry.createdAt)) {
@@ -600,7 +601,8 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
         item.className = "dash-todo-item" + (todo.done ? " done" : "");
         const checkedAttr = todo.done ? " checked" : "";
         const disabledAttr = isCompleted ? " disabled" : "";
-        item.innerHTML = `<input type="checkbox" class="dash-todo-check"${checkedAttr}${disabledAttr}> <span>${escapeHTML(todo.text)}</span>`;
+        const completedText = todo.done ? ' <span class="todo-completed-text">completed</span>' : '';
+        item.innerHTML = `<input type="checkbox" class="dash-todo-check"${checkedAttr}${disabledAttr}> <span>${escapeHTML(todo.text)}</span>${completedText}`;
         if (!isCompleted) {
           item.querySelector("input").addEventListener("change", (e) => {
             if (e.target.checked && entry.createdAt && isCooldownActive(entry.createdAt)) {

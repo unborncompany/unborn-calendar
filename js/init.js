@@ -161,3 +161,12 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+/* ============ Expandable Panels ============ */
+document.addEventListener("click", (e) => {
+  const toggle = e.target.closest(".expandable-toggle");
+  if (!toggle) return;
+  const panel = toggle.closest(".expandable");
+  if (!panel) return;
+  panel.classList.toggle("expanded");
+});
