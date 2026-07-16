@@ -2,19 +2,78 @@
 
 const INV_STORAGE_KEY = "ledger.inventory.v1";
 const INV_CATEGORIES = ["Electronics", "Food & Drinks", "Clothing", "Office Supplies", "Tools", "Furniture", "Other"];
-let inventory = loadInventory();
+let inventory = [];
 let activeInvFilter = "all";
 let expandedInvId = null;
+
+// Load default inventory from JSON file (cache-first for offline support)
+function loadDefaultInventory() {
+  // Try cache first (for offline support)
+  if ("caches" in window) {
+    return caches.open("gol-cache-v1").then(cache => {
+      return cache.match("default-inventory.json").then(cached => {
+        if (cached) {
+          return cached.json().then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              inventory = data;
+              saveInventory();
+              return data;
+            }
+          });
+        }
+        // Fall back to network if cache miss
+        return fetch("default-inventory.json")
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              inventory = data;
+              saveInventory();
+            }
+          });
+      });
+    }).catch(() => {
+      // If cache API fails, try direct fetch
+      return fetch("default-inventory.json")
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            inventory = data;
+            saveInventory();
+          }
+        });
+    });
+  }
+  // No cache API available, use direct fetch
+  return fetch("default-inventory.json")
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        inventory = data;
+        saveInventory();
+      }
+    })
+    .catch(() => {});
+}
 
 function loadInventory() {
   try {
     const raw = localStorage.getItem(INV_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        inventory = parsed;
+        return;
+      }
+    }
   } catch (e) {
     console.error("Could not read inventory:", e);
-    return [];
   }
+  // Fall back to default inventory from JSON file
+  loadDefaultInventory();
 }
+
+// Initialize inventory
+loadInventory();
 
 function saveInventory() {
   try {

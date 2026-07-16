@@ -559,11 +559,11 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   syncCalViewButtons();
   applyTheme();
   applyTranslations();
-  loadDefaultInventory().then(() => {
-    refreshAll();
-    showToast(t("toast_deleted"));
-    scheduleCloudSave();
-  });
+  // Reload inventory from localStorage (which will load defaults if empty)
+  loadInventory();
+  refreshAll();
+  showToast(t("toast_deleted"));
+  scheduleCloudSave();
 });
 
 function refreshAll() {
