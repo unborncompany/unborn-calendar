@@ -903,3 +903,216 @@
   color: #ef4444;
   text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
+
+/* ============ Virtual Pet Panel ============ */
+.pet-panel-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--paper-card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  max-width: 480px;
+  margin: 20px auto;
+}
+
+.pet-screen-frame {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  background: #111;
+  border: 8px solid #333;
+  border-radius: 16px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 8px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-screen-scanlines {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pet-screen-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 9;
+}
+
+.pet-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: background-image 0.3s;
+  z-index: 1;
+}
+
+.pet-bg-layer.animated {
+  background-image: url('/icons/pet_bg_animated.jpg');
+  background-size: 640px 320px;
+  animation: bg-twinkle 1.5s steps(2) infinite;
+}
+
+.pet-bg-layer.simple {
+  background-image: url('/icons/pet_bg_simple.jpg');
+  background-size: 320px 320px;
+}
+
+@keyframes bg-twinkle {
+  from { background-position: 0px 0; }
+  to { background-position: -640px 0; }
+}
+
+.pet-character-container {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 120px;
+  z-index: 5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-sprite {
+  width: 120px;
+  height: 120px;
+  background-image: url('/icons/virtual_pet_sprite.jpg');
+  background-size: 480px 120px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.pet-sprite.happy {
+  animation: pet-idle 0.6s steps(4) infinite;
+}
+
+.pet-sprite.normal {
+  animation: pet-idle 0.9s steps(4) infinite;
+}
+
+.pet-sprite.sad {
+  animation: pet-idle 1.5s steps(4) infinite;
+  filter: grayscale(0.5);
+}
+
+.pet-sprite.sleepy {
+  animation: pet-idle 2.0s steps(4) infinite;
+  transform: translateY(10px) scaleY(0.8);
+}
+
+@keyframes pet-idle {
+  from { background-position: 0px 0; }
+  to { background-position: -480px 0; }
+}
+
+.pet-effect-bubble {
+  position: absolute;
+  top: -20px;
+  font-size: 24px;
+  animation: float-up 1s ease-out forwards;
+  pointer-events: none;
+  z-index: 12;
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  20% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-40px) scale(0.8); opacity: 0; }
+}
+
+.pet-speech-bubble {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 3px solid #000;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: var(--font-pixel-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: black;
+  text-align: center;
+  z-index: 11;
+  max-width: 80%;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.pet-speech-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0;
+  border-style: solid;
+  border-color: white transparent;
+  display: block;
+  width: 0;
+}
+
+.pet-speech-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: black transparent;
+  display: block;
+  width: 0;
+  z-index: -1;
+}
+
+.pet-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.pet-status-stats {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 8px;
+  border-radius: var(--radius);
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--ink-soft);
+}
+
+.pet-status-item span {
+  color: var(--rpg-purple);
+  font-weight: bold;
+}
+
