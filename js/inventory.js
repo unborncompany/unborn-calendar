@@ -1,6 +1,6 @@
 /* ============ inventory.js — Inventory Management ============ */
 
-const INV_STORAGE_KEY = "ledger.inventory.v1";
+const INV_STORAGE_KEY = "ledger.inventory.v2.5";
 const INV_CATEGORIES = ["Electronics", "Food & Drinks", "Clothing", "Office Supplies", "Tools", "Furniture", "Other"];
 let inventory = [];
 let activeInvFilter = "all";
