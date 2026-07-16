@@ -92,7 +92,6 @@
       <button class="tab-btn active" data-tab="life" role="tab">Life</button>
       <button class="tab-btn" data-tab="calendar" role="tab">Calendar</button>
       <button class="tab-btn" data-tab="store" role="tab">Store</button>
-      <button class="tab-btn" data-tab="pet" role="tab">Virtual Pet</button>
       <button class="tab-btn" data-tab="settings" role="tab">Settings</button>
     </nav>
     <button class="btn btn-primary" id="quickAddBtn">+ New entry</button>
@@ -331,43 +330,6 @@
     <div class="store-grid" id="storeGrid"></div>
   </main>
 
-  <!-- Virtual Pet -->
-  <main class="tab-panel" id="panel-pet">
-    <div class="panel-head">
-      <div>
-        <h2 id="petTitle">Virtual Pet</h2>
-        <p class="subtle" id="petSummary">Interact with your digital companion! Click the pet to play.</p>
-      </div>
-    </div>
-    
-    <div class="pet-panel-content">
-      <div class="pet-screen-frame">
-        <div class="pet-screen-scanlines"></div>
-        <div class="pet-screen-overlay"></div>
-        <!-- Background Layer -->
-        <div class="pet-bg-layer animated" id="petBg"></div>
-        
-        <!-- Speech Bubble (shows states and comments based on daily RPG stats!) -->
-        <div class="pet-speech-bubble" id="petBubble" style="display: none;"></div>
-        
-        <!-- Interactive Character container -->
-        <div class="pet-character-container" id="petCharacterContainer">
-          <div class="pet-sprite normal" id="petSprite"></div>
-        </div>
-      </div>
-      
-      <div class="pet-controls">
-        <div class="pet-status-stats">
-          <div class="pet-status-item" id="petStatusName">Pet: <span id="petNameVal">Slimey</span></div>
-          <div class="pet-status-item" id="petStatusMood">Mood: <span id="petMoodVal">Normal</span></div>
-          <div class="pet-status-item" id="petStatusAge">Age: <span id="petAgeVal">1 day</span></div>
-        </div>
-        
-        <button type="button" class="btn btn-primary" id="petChangeBgBtn">Change Background</button>
-      </div>
-    </div>
-  </main>
-
   <!-- Life -->
   <main class="tab-panel active" id="panel-life">
     <!-- Hero row: Greeting + RPG Stats + Acquired Items -->
@@ -376,6 +338,34 @@
         <h2 id="dashGreeting"></h2>
         <p class="subtle" id="dashTaskMsg"></p>
         <p class="subtle" id="dashExpectedPts"></p>
+      </div>
+
+      <!-- Virtual Pet inside Dashboard -->
+      <div class="pet-panel-content">
+        <div class="pet-screen-frame">
+          <div class="pet-screen-scanlines"></div>
+          <div class="pet-screen-overlay"></div>
+          <!-- Background Layer -->
+          <div class="pet-bg-layer animated" id="petBg"></div>
+          
+          <!-- Speech Bubble -->
+          <div class="pet-speech-bubble" id="petBubble" style="display: none;"></div>
+          
+          <!-- Interactive Character container -->
+          <div class="pet-character-container" id="petCharacterContainer">
+            <div class="pet-sprite normal" id="petSprite"></div>
+          </div>
+        </div>
+        
+        <div class="pet-controls">
+          <div class="pet-status-stats">
+            <div class="pet-status-item" id="petStatusName">Pet: <span id="petNameVal">Slimey</span></div>
+            <div class="pet-status-item" id="petStatusMood">Mood: <span id="petMoodVal">Normal</span></div>
+            <div class="pet-status-item" id="petStatusAge">Age: <span id="petAgeVal">1 day</span></div>
+          </div>
+          
+          <button type="button" class="btn btn-primary btn-small" id="petChangeBgBtn">Change BG</button>
+        </div>
       </div>
       <div class="rpg-stats-panel expandable" id="lifeStatsSection">
         <div class="rpg-level-badge expandable-toggle">
