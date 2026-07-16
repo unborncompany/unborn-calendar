@@ -109,6 +109,33 @@ function isAntiCheatActive(createdAt, pointsAwardedAt) {
   return (new Date(pointsAwardedAt) - new Date(createdAt)) / 60000 < ANTI_CHEAT_WINDOW_MINUTES;
 }
 
+function getRemainingAntiCheat(createdAt) {
+  const elapsed = minutesSince(createdAt);
+  const remaining = ANTI_CHEAT_WINDOW_MINUTES - elapsed;
+  return remaining > 0 ? Math.ceil(remaining) : 0;
+}
+
+function getEntryPointState(entry) {
+  if (entry.pointsAwardedAt) return "claimed";
+  if (entry.completedAt) return "completed";
+  if (!entry.createdAt) return "ready";
+  const elapsed = minutesSince(entry.createdAt);
+  if (elapsed < COOLDOWN_MINUTES) {
+    return { state: "cooldown", remaining: Math.ceil(COOLDOWN_MINUTES - elapsed) };
+  }
+  if (elapsed < ANTI_CHEAT_WINDOW_MINUTES) {
+    return { state: "anticheat", remaining: Math.ceil(ANTI_CHEAT_WINDOW_MINUTES - elapsed), pts: 1 };
+  }
+  return { state: "ready", pts: 5 };
+}
+
+function formatTimer(minutes) {
+  if (minutes <= 0) return "0:00";
+  const m = Math.floor(minutes);
+  const s = Math.round((minutes - m) * 60);
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
 function calcDayPoints(dateStr) {
   const dayEntries = entries.filter(e => e.date === dateStr);
   let pts = 0;

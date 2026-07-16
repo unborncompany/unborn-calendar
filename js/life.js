@@ -43,7 +43,7 @@ function renderLife() {
   document.getElementById("lifeTotalItems").textContent = redeemed.length;
 
   if (redeemed.length === 0) {
-    grid.innerHTML = renderEmptyState(t("dash_empty"), t("life_empty"), "life-empty");
+    grid.innerHTML = '<div class="life-items-empty">No items yet</div>';
   } else {
     // Group by item
     const grouped = {};
@@ -71,98 +71,115 @@ function renderLife() {
       const isConsumable = invItem && invItem.consumable && invItem.statEffects && invItem.statEffects.length > 0;
       const itemDeleted = !invItem;
 
-      const card = document.createElement("div");
-      card.className = "life-card" + (isConsumable ? " consumable" : "") + (itemDeleted ? " item-deleted" : "");
+      const el = document.createElement("div");
+      el.className = "life-item" + (isConsumable ? " consumable" : "") + (itemDeleted ? " item-deleted" : "");
 
-      // Consumable badge
-      if (isConsumable) {
-        const badge = document.createElement("div");
-        badge.className = "life-card-badge";
-        badge.textContent = t("invModal_consumable");
-        card.appendChild(badge);
-      }
+      // Main row
+      const row = document.createElement("div");
+      row.className = "life-item-row";
 
-      // Deleted from store badge
-      if (itemDeleted) {
-        const badge = document.createElement("div");
-        badge.className = "life-card-badge";
-        badge.style.background = "var(--danger)";
-        badge.textContent = t("life_itemDeleted");
-        card.appendChild(badge);
-      }
-
+      const icon = document.createElement("div");
+      icon.className = "life-item-icon";
       if (item.image) {
         const img = document.createElement("img");
-        img.className = "life-card-img";
         img.src = item.image;
         img.alt = item.name;
-        card.appendChild(img);
+        icon.appendChild(img);
       } else {
-        const noImg = document.createElement("div");
-        noImg.className = "life-card-noimg";
-        noImg.textContent = isConsumable ? "\u2728" : "\u2728";
-        card.appendChild(noImg);
+        icon.textContent = isConsumable ? "\u2728" : "\u2728";
       }
-
-      const body = document.createElement("div");
-      body.className = "life-card-body";
+      row.appendChild(icon);
 
       const name = document.createElement("div");
-      name.className = "life-card-name";
+      name.className = "life-item-name";
       name.textContent = item.name;
-      body.appendChild(name);
+      row.appendChild(name);
 
-      const price = document.createElement("div");
-      price.className = "life-card-price";
-      price.textContent = (item.totalPts || item.price) + " pts";
-      body.appendChild(price);
-
-      if (item.selectedAccessories && item.selectedAccessories.length > 0) {
-        const accInfo = document.createElement("div");
-        accInfo.className = "life-card-qty";
-        accInfo.textContent = `${item.selectedAccessories.length} accessory`;
-        body.appendChild(accInfo);
+      if (isConsumable) {
+        const badge = document.createElement("span");
+        badge.className = "life-item-consumable-badge";
+        badge.textContent = "Use";
+        row.appendChild(badge);
       }
 
-      const qty = document.createElement("div");
-      qty.className = "life-card-qty";
-      qty.textContent = `${t("life_acquired")}: ${item.qty}`;
-      body.appendChild(qty);
+      const qty = document.createElement("span");
+      qty.className = "life-item-qty";
+      qty.textContent = "x" + item.qty;
+      row.appendChild(qty);
 
-      const date = document.createElement("div");
-      date.className = "life-card-date";
+      const chevron = document.createElement("span");
+      chevron.className = "life-item-chevron";
+      chevron.textContent = "\u25b6";
+      row.appendChild(chevron);
+
+      row.addEventListener("click", () => {
+        // Close other expanded items
+        grid.querySelectorAll(".life-item.expanded").forEach(other => {
+          if (other !== el) other.classList.remove("expanded");
+        });
+        el.classList.toggle("expanded");
+      });
+
+      el.appendChild(row);
+
+      // Expanded details
+      const details = document.createElement("div");
+      details.className = "life-item-details";
+
+      const meta = document.createElement("div");
+      meta.className = "life-item-meta";
+
+      const ptsRow = document.createElement("div");
+      ptsRow.className = "life-item-meta-row";
+      ptsRow.innerHTML = `<span>Points:</span> ${(item.totalPts || item.price)} pts`;
+      meta.appendChild(ptsRow);
+
+      if (item.selectedAccessories && item.selectedAccessories.length > 0) {
+        const accRow = document.createElement("div");
+        accRow.className = "life-item-meta-row";
+        accRow.innerHTML = `<span>Accessories:</span> ${item.selectedAccessories.length}`;
+        meta.appendChild(accRow);
+      }
+
+      const dateRow = document.createElement("div");
+      dateRow.className = "life-item-meta-row";
       const d = new Date(item.lastRedeemed);
-      date.textContent = t("life_date")(d.toLocaleDateString());
-      body.appendChild(date);
+      dateRow.innerHTML = `<span>Acquired:</span> ${d.toLocaleDateString()}`;
+      meta.appendChild(dateRow);
 
-      // Stat effects preview for consumables
+      details.appendChild(meta);
+
+      // Stat effects for consumables
       if (isConsumable) {
         const effectsDiv = document.createElement("div");
-        effectsDiv.className = "life-card-effects";
+        effectsDiv.className = "life-item-effects";
         const statLabels = { health: t("life_health"), energy: t("life_energy"), hunger: t("life_hunger"), thirst: t("life_thirst") };
         invItem.statEffects.forEach(eff => {
           const tag = document.createElement("span");
-          tag.className = "life-card-effect-tag " + (eff.amount >= 0 ? "positive" : "negative");
+          tag.className = "life-item-effect-tag " + (eff.amount >= 0 ? "positive" : "negative");
           tag.textContent = `${eff.amount > 0 ? "+" : ""}${eff.amount} ${statLabels[eff.stat] || eff.stat}`;
           effectsDiv.appendChild(tag);
         });
-        body.appendChild(effectsDiv);
+        details.appendChild(effectsDiv);
+
+        // Use button
+        if (item.qty > 0) {
+          const useArea = document.createElement("div");
+          useArea.className = "life-item-use";
+          const useBtn = document.createElement("button");
+          useBtn.className = "btn btn-primary btn-small";
+          useBtn.textContent = t("life_use");
+          useBtn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            useItem(item, el);
+          });
+          useArea.appendChild(useBtn);
+          details.appendChild(useArea);
+        }
       }
 
-      // Use button for consumable items
-      if (isConsumable && item.qty > 0) {
-        const useArea = document.createElement("div");
-        useArea.className = "life-card-use";
-        const useBtn = document.createElement("button");
-        useBtn.className = "btn btn-primary btn-small";
-        useBtn.textContent = t("life_use");
-        useBtn.addEventListener("click", () => useItem(item, card));
-        useArea.appendChild(useBtn);
-        body.appendChild(useArea);
-      }
-
-      card.appendChild(body);
-      grid.appendChild(card);
+      el.appendChild(details);
+      grid.appendChild(el);
     });
   }
 }

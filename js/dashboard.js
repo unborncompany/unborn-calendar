@@ -288,17 +288,18 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
   dayEntries.forEach(entry => {
     const doneCount = entry.todos.filter(t => t.done).length;
     const allDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
-    const entryPts = entry._status === "completed" ? calcEntryPoints(entry) : calcMaxPoints(entry);
-    const isPendingClaim = allDone && entry.pendingPoints && !entry.pointsAwardedAt;
+    const noTodos = entry.todos.length === 0;
     const isCompleted = entry._status === "completed" && entry.pointsAwardedAt;
+    const pointState = getEntryPointState(entry);
+    const canClaimPoints = (allDone || noTodos) && !isCompleted && pointState.state === "ready";
 
     if (lifeMode) {
-      // ---- LIFE MODE: distinct today / tomorrow cards ----
+      // ---- LIFE MODE ----
       const card = document.createElement("div");
       const baseClass = dayType === "today" ? "life-entry-card life-entry-today" : "life-entry-card life-entry-tomorrow";
-      card.className = baseClass + (isCompleted ? " claimed" : "") + (isPendingClaim ? " ready-to-claim" : "");
+      card.className = baseClass + (isCompleted ? " claimed" : "") + (canClaimPoints ? " ready-to-claim" : "");
 
-      // --- Top row: time + name + points ---
+      // --- Top row: time + name + points/timer ---
       const top = document.createElement("div");
       top.className = "life-entry-top";
 
@@ -311,8 +312,23 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
       nameEl.textContent = entry.name;
 
       const ptsEl = document.createElement("span");
-      ptsEl.className = "life-entry-pts" + (entryPts < 0 ? " neg" : "");
-      ptsEl.textContent = (entryPts >= 0 ? "+" : "") + entryPts + " pts";
+      ptsEl.className = "life-entry-pts";
+
+      if (isCompleted) {
+        const pts = calcEntryPoints(entry);
+        ptsEl.textContent = (pts >= 0 ? "+" : "") + pts + " pts";
+        if (pts < 0) ptsEl.classList.add("neg");
+      } else if (typeof pointState === "object" && pointState.state === "cooldown") {
+        ptsEl.textContent = "\u23f3 " + formatTimer(pointState.remaining);
+        ptsEl.classList.add("timer-badge", "cooldown");
+      } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+        ptsEl.textContent = "\u26a0 " + pointState.pts + " pts \u00b7 " + formatTimer(pointState.remaining);
+        ptsEl.classList.add("timer-badge", "anticheat");
+      } else if (typeof pointState === "object" && pointState.state === "ready") {
+        ptsEl.textContent = "+" + pointState.pts + " pts";
+      } else {
+        ptsEl.textContent = "+5 pts";
+      }
 
       top.appendChild(timeEl);
       top.appendChild(nameEl);
@@ -340,7 +356,7 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
               saveEntries();
               item.classList.toggle("done", todo.done);
               const newDone = entry.todos.filter(t => t.done).length;
-              progressEl.textContent = `${newDone}/${entry.todos.length}`;
+              progressEl.textContent = noTodos ? "Quick task" : `${newDone}/${entry.todos.length}`;
               const newAllDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
               entry.pendingPoints = newAllDone;
               if (newAllDone) {
@@ -360,22 +376,78 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
       // --- Progress line ---
       const progressEl = document.createElement("div");
       progressEl.className = "life-entry-progress";
-      progressEl.textContent = `${doneCount}/${entry.todos.length}`;
+      progressEl.textContent = noTodos ? "Quick task" : `${doneCount}/${entry.todos.length}`;
       card.appendChild(progressEl);
 
       // --- Action area ---
       if (isCompleted) {
-        const locked = document.createElement("div");
-        locked.className = "life-entry-locked";
-        locked.innerHTML = `<span class="life-entry-locked-icon">&#10003;</span> ${t("dash_pointsClaimed")}`;
-        card.appendChild(locked);
-      } else if (isPendingClaim) {
+        const action = document.createElement("div");
+        action.className = "life-entry-action";
+        const pts = calcEntryPoints(entry);
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary life-entry-claim-btn btn-disabled";
+        btn.textContent = "Completed";
+        btn.disabled = true;
+        action.appendChild(btn);
+        card.appendChild(action);
+      } else if (noTodos) {
+        const action = document.createElement("div");
+        action.className = "life-entry-action";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary life-entry-claim-btn";
+        if (typeof pointState === "object" && pointState.state === "cooldown") {
+          btn.textContent = "Wait... " + formatTimer(pointState.remaining);
+          btn.disabled = true;
+          btn.classList.add("btn-disabled");
+        } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+          btn.textContent = "Mark Done (" + pointState.pts + " pts \u2014 wait " + formatTimer(pointState.remaining) + " for +5)";
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            entry.completedAt = new Date().toISOString();
+            entry.pointsAwardedAt = new Date().toISOString();
+            entry.pendingPoints = false;
+            saveEntries();
+            const pts = calcEntryPoints(entry);
+            if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+              showToast(t("toast_antiCheat"));
+            }
+            playPointsCelebration(pts, entry.name);
+            setTimeout(() => {
+              renderPointsSummary();
+              renderLifeStats();
+              renderDashboard();
+            }, 600);
+          });
+        } else {
+          const previewPts = previewEntryPoints(entry);
+          btn.textContent = "Mark Done (" + (previewPts >= 0 ? "+" : "") + previewPts + " pts)";
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            entry.completedAt = new Date().toISOString();
+            entry.pointsAwardedAt = new Date().toISOString();
+            entry.pendingPoints = false;
+            saveEntries();
+            const pts = calcEntryPoints(entry);
+            if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+              showToast(t("toast_antiCheat"));
+            }
+            playPointsCelebration(pts, entry.name);
+            setTimeout(() => {
+              renderPointsSummary();
+              renderLifeStats();
+              renderDashboard();
+            }, 600);
+          });
+        }
+        action.appendChild(btn);
+        card.appendChild(action);
+      } else if (canClaimPoints) {
         const action = document.createElement("div");
         action.className = "life-entry-action";
         const previewPts = previewEntryPoints(entry);
         const btn = document.createElement("button");
         btn.className = "btn btn-primary life-entry-claim-btn";
-        btn.textContent = t("dash_getPoints") + "  (" + (previewPts >= 0 ? "+" : "") + previewPts + " pts)";
+        btn.textContent = t("dash_getPoints") + "  (+" + previewPts + " pts)";
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
           entry.completedAt = new Date().toISOString();
@@ -395,57 +467,93 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
         });
         action.appendChild(btn);
         card.appendChild(action);
+      } else if (allDone && !isCompleted && typeof pointState === "object" && pointState.state !== "ready") {
+        const action = document.createElement("div");
+        action.className = "life-entry-action";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary life-entry-claim-btn btn-disabled";
+        if (pointState.state === "cooldown") {
+          btn.textContent = "Wait... " + formatTimer(pointState.remaining);
+          btn.disabled = true;
+        } else if (pointState.state === "anticheat") {
+          btn.textContent = "Get Points (+1 pts \u2014 wait " + formatTimer(pointState.remaining) + " for +5)";
+          btn.disabled = true;
+        }
+        action.appendChild(btn);
+        card.appendChild(action);
       }
 
       container.appendChild(card);
     } else {
-      // ---- DASHBOARD MODE: existing gamey cards ----
-      // --- Pending claim card ---
-      if (isPendingClaim) {
+      // ---- DASHBOARD MODE ----
+      // --- All todos done (pending claim OR already claimed) ---
+      if (allDone && !noTodos) {
         const wrap = document.createElement("div");
-        wrap.className = "dash-entry-wrap gamey-completed";
+        wrap.className = "dash-entry-wrap gamey-completed" + (isCompleted ? " claimed" : "");
         const previewPts = previewEntryPoints(entry);
+
+        let timerHTML = "";
+        let btnHTML = "";
+
+        if (isCompleted) {
+          const pts = calcEntryPoints(entry);
+          timerHTML = `<div class="gamey-card-pts">+${pts} pts earned</div>`;
+          btnHTML = `<button class="btn btn-primary btn-small gamey-get-points-btn btn-disabled" disabled>Completed</button>`;
+        } else if (typeof pointState === "object" && pointState.state === "cooldown") {
+          timerHTML = `<div class="gamey-card-timer cooldown">\u23f3 ${formatTimer(pointState.remaining)}</div>`;
+          btnHTML = `<button class="btn btn-primary btn-small gamey-get-points-btn btn-disabled" disabled>Wait...</button>`;
+        } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+          timerHTML = `<div class="gamey-card-timer anticheat">\u26a0 +${pointState.pts} pts \u00b7 ${formatTimer(pointState.remaining)} left</div>`;
+          btnHTML = `<button class="btn btn-primary btn-small gamey-get-points-btn">Get +${pointState.pts} pts</button>`;
+        } else {
+          timerHTML = `<div class="gamey-card-pts">+${previewPts} pts</div>`;
+          btnHTML = `<button class="btn btn-primary btn-small gamey-get-points-btn">${t("dash_getPoints")}</button>`;
+        }
 
         wrap.innerHTML = `
           <div class="dash-entry-gamey-card">
             <div class="gamey-card-glow"></div>
-            <div class="gamey-card-particles">
+            ${isCompleted ? '' : `<div class="gamey-card-particles">
               <div class="gamey-particle"></div>
               <div class="gamey-particle"></div>
               <div class="gamey-particle"></div>
               <div class="gamey-particle"></div>
               <div class="gamey-particle"></div>
               <div class="gamey-particle"></div>
-            </div>
+            </div>`}
             <div class="gamey-card-content">
               <div class="gamey-card-icon">&#10003;</div>
               <div class="gamey-card-text">
                 <div class="gamey-card-title">${t("dash_completed")}</div>
                 <div class="gamey-card-subtitle">${escapeHTML(entry.name)}</div>
-                <div class="gamey-card-pts">${previewPts >= 0 ? "+" : ""}${previewPts} pts</div>
+                ${timerHTML}
               </div>
-              <button class="btn btn-primary btn-small gamey-get-points-btn">${t("dash_getPoints")}</button>
+              ${btnHTML}
             </div>
           </div>
         `;
-        wrap.querySelector(".gamey-get-points-btn").addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          entry.completedAt = new Date().toISOString();
-          entry.pointsAwardedAt = new Date().toISOString();
-          entry.pendingPoints = false;
-          saveEntries();
-          const pts = calcEntryPoints(entry);
-          if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
-            showToast(t("toast_antiCheat"));
-          }
-          playPointsCelebration(pts, entry.name);
-          wrap.classList.add("claiming");
-          setTimeout(() => {
-            renderPointsSummary();
-            renderLifeStats();
-            renderDashboard();
-          }, 600);
-        });
+
+        if (!isCompleted) {
+          wrap.querySelector(".gamey-get-points-btn").addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            entry.completedAt = new Date().toISOString();
+            entry.pointsAwardedAt = new Date().toISOString();
+            entry.pendingPoints = false;
+            saveEntries();
+            const pts = calcEntryPoints(entry);
+            if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+              showToast(t("toast_antiCheat"));
+            }
+            playPointsCelebration(pts, entry.name);
+            wrap.classList.add("claiming");
+            setTimeout(() => {
+              renderPointsSummary();
+              renderLifeStats();
+              renderDashboard();
+            }, 600);
+          });
+        }
+
         container.appendChild(wrap);
         return;
       }
@@ -457,7 +565,20 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
       const header = document.createElement("div");
       header.className = "dash-entry-header";
 
-      const ptsDisplay = isCompleted ? calcEntryPoints(entry) : entryPts;
+      // --- Points display: cooldown / anticheat / ready ---
+      let ptsHTML = "";
+      if (isCompleted) {
+        const pts = calcEntryPoints(entry);
+        ptsHTML = `<span class="dash-entry-pts ${pts >= 0 ? "pos" : "neg"}">${pts >= 0 ? "+" : ""}${pts}</span>`;
+      } else if (typeof pointState === "object" && pointState.state === "cooldown") {
+        ptsHTML = `<span class="dash-entry-pts timer-badge cooldown">\u23f3 ${formatTimer(pointState.remaining)}</span>`;
+      } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+        ptsHTML = `<span class="dash-entry-pts timer-badge anticheat">\u26a0 +${pointState.pts} \u00b7 ${formatTimer(pointState.remaining)}</span>`;
+      } else {
+        const displayPts = typeof pointState === "object" && pointState.pts ? pointState.pts : entryPts;
+        ptsHTML = `<span class="dash-entry-pts ${displayPts >= 0 ? "pos" : "neg"}">${displayPts >= 0 ? "+" : ""}${displayPts}</span>`;
+      }
+
       header.innerHTML = `
         <div class="dash-entry-info">
           <div class="dash-entry-meta">
@@ -465,12 +586,13 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
             <span class="dash-entry-name">${escapeHTML(entry.name)}</span>
           </div>
           ${entry.description ? `<div class="dash-entry-desc">${escapeHTML(entry.description)}</div>` : ''}
-          <div class="dash-entry-progress">${doneCount}/${entry.todos.length} ${t("dash_done")}</div>
+          ${noTodos ? '<div class="dash-entry-progress">Quick task</div>' : `<div class="dash-entry-progress">${doneCount}/${entry.todos.length} ${t("dash_done")}</div>`}
         </div>
-        <span class="dash-entry-pts ${ptsDisplay >= 0 ? "pos" : "neg"}">${ptsDisplay >= 0 ? "+" : ""}${ptsDisplay}</span>
+        ${ptsHTML}
       `;
       wrap.appendChild(header);
 
+      // --- Todos ---
       const todosDiv = document.createElement("div");
       todosDiv.className = "dash-entry-todos dash-entry-todos-visible dash-entry-todos-scroll";
       entry.todos.forEach(todo => {
@@ -506,6 +628,64 @@ function renderDayEntries(container, dayISO, emptyMsg, lifeMode = false, dayType
       });
 
       wrap.appendChild(todosDiv);
+
+      // --- Action: Mark Done (no-todos entries) ---
+      if (!isCompleted && noTodos) {
+        const action = document.createElement("div");
+        action.className = "dash-entry-action";
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary btn-small gamey-get-points-btn";
+
+        if (typeof pointState === "object" && pointState.state === "cooldown") {
+          btn.textContent = "Wait... " + formatTimer(pointState.remaining);
+          btn.disabled = true;
+          btn.classList.add("btn-disabled");
+        } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+          btn.textContent = "Mark Done (+" + pointState.pts + " pts \u2014 wait " + formatTimer(pointState.remaining) + " for +5)";
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            entry.completedAt = new Date().toISOString();
+            entry.pointsAwardedAt = new Date().toISOString();
+            entry.pendingPoints = false;
+            saveEntries();
+            const pts = calcEntryPoints(entry);
+            if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+              showToast(t("toast_antiCheat"));
+            }
+            playPointsCelebration(pts, entry.name);
+            wrap.classList.add("claiming");
+            setTimeout(() => {
+              renderPointsSummary();
+              renderLifeStats();
+              renderDashboard();
+            }, 600);
+          });
+        } else {
+          const previewPts = previewEntryPoints(entry);
+          btn.textContent = "Mark Done (+" + previewPts + " pts)";
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            entry.completedAt = new Date().toISOString();
+            entry.pointsAwardedAt = new Date().toISOString();
+            entry.pendingPoints = false;
+            saveEntries();
+            const pts = calcEntryPoints(entry);
+            if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+              showToast(t("toast_antiCheat"));
+            }
+            playPointsCelebration(pts, entry.name);
+            wrap.classList.add("claiming");
+            setTimeout(() => {
+              renderPointsSummary();
+              renderLifeStats();
+              renderDashboard();
+            }, 600);
+          });
+        }
+        action.appendChild(btn);
+        wrap.appendChild(action);
+      }
+
       container.appendChild(wrap);
     }
   });
@@ -898,4 +1078,123 @@ function renderDashboard() {
   renderSecTasks();
   renderMoodCheckin();
   renderMoodOverview();
+  renderNotes();
 }
+
+/* ============ Today's Notes ============ */
+function renderNotes() {
+  const today = todayISO();
+  const list = document.getElementById("notesList");
+  const summary = document.getElementById("notesSummary");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const notes = dailyNotes[today] || [];
+  if (summary) {
+    summary.textContent = notes.length === 0 ? "Quick notes for today." : notes.length + " note" + (notes.length !== 1 ? "s" : "") + " saved.";
+  }
+
+  notes.forEach((note, idx) => {
+    const item = document.createElement("div");
+    item.className = "notes-item";
+
+    const text = document.createElement("div");
+    text.className = "notes-text";
+    text.textContent = note.text;
+    item.appendChild(text);
+
+    const time = document.createElement("div");
+    time.className = "notes-time";
+    const d = new Date(note.createdAt);
+    time.textContent = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    item.appendChild(time);
+
+    const del = document.createElement("button");
+    del.className = "notes-delete";
+    del.textContent = "\u00d7";
+    del.addEventListener("click", () => {
+      dailyNotes[today].splice(idx, 1);
+      if (dailyNotes[today].length === 0) delete dailyNotes[today];
+      saveNotes();
+      renderNotes();
+      renderCalendar();
+    });
+    item.appendChild(del);
+
+    list.appendChild(item);
+  });
+}
+
+document.getElementById("notesSaveBtn").addEventListener("click", () => {
+  const input = document.getElementById("notesInput");
+  const text = input.value.trim();
+  if (!text) return;
+  const today = todayISO();
+  if (!dailyNotes[today]) dailyNotes[today] = [];
+  dailyNotes[today].push({
+    text,
+    createdAt: new Date().toISOString(),
+  });
+  saveNotes();
+  input.value = "";
+  renderNotes();
+  renderCalendar();
+  showToast("Note saved!");
+});
+
+document.getElementById("notesInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById("notesSaveBtn").click();
+  }
+});
+
+/* Notes modal for calendar */
+function openNotesModal(dateStr) {
+  const overlay = document.getElementById("notesModalOverlay");
+  const title = document.getElementById("notesModalTitle");
+  const dateEl = document.getElementById("notesModalDate");
+  const content = document.getElementById("notesModalContent");
+
+  title.textContent = "Notes";
+  dateEl.textContent = formatDatePretty(dateStr);
+
+  const notes = dailyNotes[dateStr] || [];
+  content.innerHTML = "";
+
+  if (notes.length === 0) {
+    content.innerHTML = '<div class="empty-state" style="padding:24px"><span>No notes</span>No notes for this date.</div>';
+  } else {
+    const list = document.createElement("div");
+    list.className = "notes-modal-list";
+    notes.forEach(note => {
+      const item = document.createElement("div");
+      item.className = "notes-modal-item";
+      const text = document.createElement("div");
+      text.className = "notes-modal-text";
+      text.textContent = note.text;
+      const time = document.createElement("div");
+      time.className = "notes-modal-time";
+      const d = new Date(note.createdAt);
+      time.textContent = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      item.appendChild(text);
+      item.appendChild(time);
+      list.appendChild(item);
+    });
+    content.appendChild(list);
+  }
+
+  overlay.classList.add("open");
+}
+
+document.getElementById("notesModalClose").addEventListener("click", () => {
+  document.getElementById("notesModalOverlay").classList.remove("open");
+});
+document.getElementById("notesModalCloseBtn").addEventListener("click", () => {
+  document.getElementById("notesModalOverlay").classList.remove("open");
+});
+document.getElementById("notesModalOverlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("notesModalOverlay")) {
+    document.getElementById("notesModalOverlay").classList.remove("open");
+  }
+});

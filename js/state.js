@@ -21,6 +21,7 @@ const LIFE_STATS_KEY = "ledger.lifeStats.v1";
 const MOOD_STORAGE_KEY = "ledger.moods.v1";
 const MOOD_STATES_KEY = "ledger.moodStates.v1";
 const MOOD_POINTS_KEY = "ledger.moodPoints.v1";
+const NOTES_KEY = "ledger.notes.v1";
 
 const DEFAULT_MOOD_STATES = ["happy", "calm", "energetic", "tired", "stressed", "anxious", "sad", "angry", "hungry", "motivated", "neutral"];
 const MOOD_PERIODS = ["morning", "afternoon", "night"];
@@ -154,6 +155,21 @@ function saveMoodPoints() {
 }
 
 let moodPoints = loadMoodPoints();
+
+/* ---------- Notes (per date) ---------- */
+function loadNotes() {
+  try {
+    const raw = localStorage.getItem(NOTES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+function saveNotes() {
+  try { localStorage.setItem(NOTES_KEY, JSON.stringify(dailyNotes)); } catch (e) {}
+  scheduleCloudSave();
+}
+
+let dailyNotes = loadNotes();
 
 function loadEditPenalties() {
   try {

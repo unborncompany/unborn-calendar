@@ -320,10 +320,7 @@ function applyTranslations() {
   document.getElementById("storeTitle").textContent = t("store_title");
   document.getElementById("storeSummary").textContent = t("store_summary");
   document.getElementById("storePtsAvailLabel").textContent = t("store_availPts");
-  // Life
-  document.getElementById("lifeTitle").textContent = t("life_title");
-  document.getElementById("lifeSummary").textContent = t("life_summary");
-  document.getElementById("lifeTotalLabel").textContent = t("life_totalLabel");
+  // Life stat labels
   document.getElementById("lifeStatHealthLabel").textContent = t("life_health");
   document.getElementById("lifeStatEnergyLabel").textContent = t("life_energy");
   document.getElementById("lifeStatHungerLabel").textContent = t("life_hunger");
@@ -537,6 +534,7 @@ document.getElementById("resetAllBtn").addEventListener("click", () => {
   localStorage.removeItem(MOOD_STORAGE_KEY);
   localStorage.removeItem(MOOD_STATES_KEY);
   localStorage.removeItem(MOOD_POINTS_KEY);
+  localStorage.removeItem(NOTES_KEY);
   entries = [];
   secTasks = [];
   deletedSecTasks = [];

@@ -56,6 +56,9 @@ function renderCalendar() {
     const dayEntries = entries.filter(e => e.date === dateStr)
       .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
 
+    const hasNotes = dailyNotes[dateStr] && dailyNotes[dateStr].length > 0;
+    const notesCount = hasNotes ? dailyNotes[dateStr].length : 0;
+
     const maxShow = 3;
     const chipsHTML = dayEntries.slice(0, maxShow).map(e => {
       const status = getStatus(e);
@@ -63,10 +66,13 @@ function renderCalendar() {
     }).join("");
     const moreHTML = dayEntries.length > maxShow
       ? `<div class="cal-more">+${dayEntries.length - maxShow} ${t("dash_more")}</div>` : "";
+    const notesHTML = hasNotes
+      ? `<div class="cal-notes-indicator" title="${notesCount} note${notesCount !== 1 ? 's' : ''}">&#128221;</div>` : "";
 
     cell.innerHTML = `
       <div class="cal-cell-head">
         <span class="cal-date-num">${dayNum}</span>
+        ${notesHTML}
         <button class="cal-add-btn" title="${t("cal_addEntry")}">+</button>
       </div>
       <div class="cal-entries">${chipsHTML}${moreHTML}</div>
@@ -77,6 +83,14 @@ function renderCalendar() {
       ev.stopPropagation();
       openEntryModal(null, dateStr);
     });
+
+    const notesIndicator = cell.querySelector(".cal-notes-indicator");
+    if (notesIndicator) {
+      notesIndicator.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openNotesModal(dateStr);
+      });
+    }
 
     cell.addEventListener("click", (ev) => {
       const chip = ev.target.closest(".cal-chip");
@@ -114,6 +128,9 @@ function renderCalList() {
       .filter(e => e.date === dateStr)
       .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
 
+    const hasNotes = dailyNotes[dateStr] && dailyNotes[dateStr].length > 0;
+    const notesCount = hasNotes ? dailyNotes[dateStr].length : 0;
+
     const dayDiv = document.createElement("div");
     dayDiv.className = "cal-list-day" + (dateStr === todayStr ? " cal-list-today" : "");
 
@@ -122,6 +139,7 @@ function renderCalList() {
     head.innerHTML = `
       <span class="cal-list-weekday">${weekdays[dayOfWeek]}</span>
       <span class="cal-list-date">${d}</span>
+      ${hasNotes ? `<span class="cal-list-notes" title="${notesCount} note${notesCount !== 1 ? 's' : ''}">&#128221;</span>` : ''}
       <span class="cal-list-count">${dayEntries.length} ${dayEntries.length !== 1 ? t("dash_more") : "entry"}</span>
       <button class="cal-list-add-btn" title="${t("cal_addEntry")}">+</button>
       <span class="cal-list-chevron">&#9654;</span>
@@ -131,6 +149,14 @@ function renderCalList() {
       ev.stopPropagation();
       openEntryModal(null, dateStr);
     });
+
+    const notesEl = head.querySelector(".cal-list-notes");
+    if (notesEl) {
+      notesEl.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openNotesModal(dateStr);
+      });
+    }
 
     head.addEventListener("click", () => {
       dayDiv.classList.toggle("expanded");

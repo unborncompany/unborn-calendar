@@ -152,10 +152,6 @@ entryForm.addEventListener("submit", (e) => {
   });
 
   if (!name || !date) return;
-  if (todoTexts.length === 0) {
-    showToast(t("toast_addTodo"));
-    return;
-  }
 
   if (id) {
     const entry = entries.find(en => en.id === id);
@@ -245,26 +241,111 @@ function openDetailModal(entryId) {
   });
 
   const allDone = entry.todos.length > 0 && entry.todos.every(t => t.done);
-  if (allDone && entry.pendingPoints && !entry.pointsAwardedAt) {
+  const noTodos = entry.todos.length === 0;
+  const isCompleted = entry.completedAt && entry.pointsAwardedAt;
+  const pointState = getEntryPointState(entry);
+
+  if (isCompleted) {
+    const pts = calcEntryPoints(entry);
     const completedBanner = document.createElement("div");
     completedBanner.className = "detail-completed-banner";
     completedBanner.innerHTML = `
-      <span class="detail-completed-text">${t("dash_completed")}</span>
-      <button class="btn btn-primary btn-small detail-get-points-btn">${t("dash_getPoints")}</button>
+      <span class="detail-completed-text"><span class="life-entry-locked-icon">&#10003;</span> ${t("dash_pointsClaimed")}</span>
+      <span class="detail-completed-pts">${pts >= 0 ? "+" : ""}${pts} pts</span>
     `;
-    completedBanner.querySelector(".detail-get-points-btn").addEventListener("click", () => {
-      entry.completedAt = new Date().toISOString();
-      entry.pointsAwardedAt = new Date().toISOString();
-      entry.pendingPoints = false;
-      saveEntries();
-      const pts = calcEntryPoints(entry);
-      if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
-        showToast(t("toast_antiCheat"));
-      }
-      playPointsCelebration(pts, entry.name);
-      closeDetailModal();
-      refreshAll();
-    });
+    todosWrap.appendChild(completedBanner);
+  } else if (noTodos) {
+    const markDoneBanner = document.createElement("div");
+    markDoneBanner.className = "detail-completed-banner";
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary btn-small detail-get-points-btn";
+
+    if (typeof pointState === "object" && pointState.state === "cooldown") {
+      btn.textContent = "Wait... " + formatTimer(pointState.remaining) + " before completing";
+      btn.disabled = true;
+      btn.classList.add("btn-disabled");
+    } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+      btn.textContent = "Mark Done (+" + pointState.pts + " pts \u2014 wait " + formatTimer(pointState.remaining) + " for +5)";
+      btn.addEventListener("click", () => {
+        entry.completedAt = new Date().toISOString();
+        entry.pointsAwardedAt = new Date().toISOString();
+        entry.pendingPoints = false;
+        saveEntries();
+        const pts = calcEntryPoints(entry);
+        if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+          showToast(t("toast_antiCheat"));
+        }
+        playPointsCelebration(pts, entry.name);
+        closeDetailModal();
+        refreshAll();
+      });
+    } else {
+      const previewPts = previewEntryPoints(entry);
+      btn.textContent = "Mark Done (+" + previewPts + " pts)";
+      btn.addEventListener("click", () => {
+        entry.completedAt = new Date().toISOString();
+        entry.pointsAwardedAt = new Date().toISOString();
+        entry.pendingPoints = false;
+        saveEntries();
+        const pts = calcEntryPoints(entry);
+        if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+          showToast(t("toast_antiCheat"));
+        }
+        playPointsCelebration(pts, entry.name);
+        closeDetailModal();
+        refreshAll();
+      });
+    }
+
+    markDoneBanner.appendChild(btn);
+    todosWrap.appendChild(markDoneBanner);
+  } else if (allDone && !entry.pointsAwardedAt) {
+    const completedBanner = document.createElement("div");
+    completedBanner.className = "detail-completed-banner";
+
+    if (typeof pointState === "object" && pointState.state === "cooldown") {
+      const statusText = document.createElement("span");
+      statusText.className = "detail-completed-text";
+      statusText.textContent = "Wait " + formatTimer(pointState.remaining) + " to claim points";
+      completedBanner.appendChild(statusText);
+    } else if (typeof pointState === "object" && pointState.state === "anticheat") {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-primary btn-small detail-get-points-btn";
+      btn.textContent = "Get Points (+1 pts \u2014 wait " + formatTimer(pointState.remaining) + " for +5)";
+      btn.addEventListener("click", () => {
+        entry.completedAt = new Date().toISOString();
+        entry.pointsAwardedAt = new Date().toISOString();
+        entry.pendingPoints = false;
+        saveEntries();
+        const pts = calcEntryPoints(entry);
+        if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+          showToast(t("toast_antiCheat"));
+        }
+        playPointsCelebration(pts, entry.name);
+        closeDetailModal();
+        refreshAll();
+      });
+      completedBanner.appendChild(btn);
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-primary btn-small detail-get-points-btn";
+      btn.textContent = t("dash_getPoints");
+      btn.addEventListener("click", () => {
+        entry.completedAt = new Date().toISOString();
+        entry.pointsAwardedAt = new Date().toISOString();
+        entry.pendingPoints = false;
+        saveEntries();
+        const pts = calcEntryPoints(entry);
+        if (entry.createdAt && isAntiCheatActive(entry.createdAt, entry.pointsAwardedAt)) {
+          showToast(t("toast_antiCheat"));
+        }
+        playPointsCelebration(pts, entry.name);
+        closeDetailModal();
+        refreshAll();
+      });
+      completedBanner.appendChild(btn);
+    }
+
     todosWrap.appendChild(completedBanner);
   }
 
