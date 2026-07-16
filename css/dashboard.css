@@ -1189,12 +1189,11 @@
   letter-spacing: 0.02em;
 }
 
-/* ============ Life Hero Row (Greeting + RPG Stats + Items) ============ */
+/* ============ Life Hero Row (Greeting + Unified Virtual Pet Panel) ============ */
 .life-hero-row {
-  display: grid;
-  grid-template-columns: 1fr 1.1fr 1fr 1.2fr;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-  align-items: start;
   margin-bottom: 24px;
 }
 .life-hero-greeting {
