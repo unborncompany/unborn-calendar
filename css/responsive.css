@@ -26,6 +26,9 @@
   .sync-status { font-size: 12px; padding: 3px 8px; }
   .cal-grid, .cal-weekdays { grid-template-columns: repeat(7, 1fr); }
   .cal-cell { min-height: 60px; padding: 6px; border-radius: var(--radius); }
+  #panel-calendar { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  #panel-calendar::-webkit-scrollbar { display: none; }
+  .cal-nav { min-width: max-content; }
   .cal-chip { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .field-row { grid-template-columns: 1fr; }
   .inv-table-head, .inv-row { grid-template-columns: 1fr 70px 50px 110px; }
