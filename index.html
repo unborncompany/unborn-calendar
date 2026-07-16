@@ -338,8 +338,8 @@
         <p class="subtle" id="dashTaskMsg"></p>
         <p class="subtle" id="dashExpectedPts"></p>
       </div>
-      <div class="rpg-stats-panel" id="lifeStatsSection">
-        <div class="rpg-level-badge">
+      <div class="rpg-stats-panel expandable" id="lifeStatsSection">
+        <div class="rpg-level-badge expandable-toggle">
           <div class="rpg-level-icon">&#9733;</div>
           <div class="rpg-level-info">
             <span class="rpg-level-label" id="lifeLevelLabel">Level 1</span>
@@ -348,8 +348,9 @@
               <span class="rpg-level-pts" id="lifeLevelPts"></span>
             </div>
           </div>
+          <span class="expandable-chevron">&#9660;</span>
         </div>
-        <div class="rpg-stats-grid" id="lifeStatsGrid">
+        <div class="rpg-stats-grid expandable-body" id="lifeStatsGrid">
           <div class="rpg-stat" data-stat="health">
             <div class="rpg-stat-icon rpg-icon-health">&#10084;</div>
             <div class="rpg-stat-info">
@@ -406,15 +407,21 @@
     <div class="dash-two-col">
       <div class="dash-main">
         <div class="dash-week-cal" id="dashWeekCal"></div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
-          <p class="subtle" id="dashSummaryToday">Nothing today.</p>
-          <div id="dashTodayList" class="dashboard-list"></div>
+        <div class="dash-day-section expandable expanded">
+          <div class="dash-day-header expandable-toggle">
+            <h2 class="dash-day-title" id="dashTitleToday">Today</h2>
+            <p class="subtle" id="dashSummaryToday">Nothing today.</p>
+            <span class="expandable-chevron">&#9660;</span>
+          </div>
+          <div id="dashTodayList" class="dashboard-list expandable-body"></div>
         </div>
-        <div class="dash-day-section">
-          <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
-          <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
-          <div id="dashTomorrowList" class="dashboard-list"></div>
+        <div class="dash-day-section expandable expanded">
+          <div class="dash-day-header expandable-toggle">
+            <h2 class="dash-day-title" id="dashTitleTomorrow">Tomorrow</h2>
+            <p class="subtle" id="dashSummaryTomorrow">Nothing tomorrow.</p>
+            <span class="expandable-chevron">&#9660;</span>
+          </div>
+          <div id="dashTomorrowList" class="dashboard-list expandable-body"></div>
         </div>
       </div>
       <div class="dash-side">
